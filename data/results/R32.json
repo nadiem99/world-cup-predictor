@@ -1,0 +1,13 @@
+{
+  "round": "R32",
+  "_note": "Add the real outcome of each match as it finishes. home_goals/away_goals = score at the end of regulation+extra time (NOT including a penalty shootout). 'advances' = the team that goes through. 'decided_by' is one of regulation|extra_time|penalties. Only matches with goals filled in are scored.",
+  "matches": [
+    {
+      "id": "R32-1",
+      "home_goals": null,
+      "away_goals": null,
+      "advances": "",
+      "decided_by": "regulation"
+    }
+  ]
+}

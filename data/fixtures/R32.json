@@ -1,0 +1,14 @@
+{
+  "round": "R32",
+  "label": "Round of 32",
+  "_note": "Fill in all 16 Round-of-32 matches here once the bracket is final (group stage ends Jun 27). Keep ids R32-1..R32-16. 'home'/'away' set the score orientation used everywhere. The opening match below is confirmed; replace the placeholders.",
+  "matches": [
+    {
+      "id": "R32-1",
+      "home": "South Africa",
+      "away": "Canada",
+      "kickoff": "2026-06-28T20:00-07:00",
+      "venue": "Los Angeles"
+    }
+  ]
+}

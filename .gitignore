@@ -1,0 +1,7 @@
+.env
+__pycache__/
+*.pyc
+.DS_Store
+output/
+data/scores.json
+.claude/settings.local.json
