@@ -1,0 +1,35 @@
+{
+  "round": "QF",
+  "label": "Quarter-finals",
+  "_note": "Fill in each match: home/away set the score orientation used everywhere; kickoff/venue are optional. Keep the generated ids.",
+  "matches": [
+    {
+      "id": "QF-1",
+      "home": "",
+      "away": "",
+      "kickoff": "",
+      "venue": ""
+    },
+    {
+      "id": "QF-2",
+      "home": "",
+      "away": "",
+      "kickoff": "",
+      "venue": ""
+    },
+    {
+      "id": "QF-3",
+      "home": "",
+      "away": "",
+      "kickoff": "",
+      "venue": ""
+    },
+    {
+      "id": "QF-4",
+      "home": "",
+      "away": "",
+      "kickoff": "",
+      "venue": ""
+    }
+  ]
+}

@@ -1,0 +1,20 @@
+{
+  "round": "SF",
+  "_note": "Fill in each match as it finishes. home_goals/away_goals = score at the end of regulation+extra time (NOT including a penalty shootout). 'advances' = the team that goes through. 'decided_by' is one of regulation|extra_time|penalties. Only matches with non-null goals are scored.",
+  "matches": [
+    {
+      "id": "SF-1",
+      "home_goals": null,
+      "away_goals": null,
+      "advances": "",
+      "decided_by": "regulation"
+    },
+    {
+      "id": "SF-2",
+      "home_goals": null,
+      "away_goals": null,
+      "advances": "",
+      "decided_by": "regulation"
+    }
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "round": "TP",
+  "label": "Third-place play-off",
+  "_note": "Fill in each match: home/away set the score orientation used everywhere; kickoff/venue are optional. Keep the generated ids.",
+  "matches": [
+    {
+      "id": "TP-1",
+      "home": "",
+      "away": "",
+      "kickoff": "",
+      "venue": ""
+    }
+  ]
+}

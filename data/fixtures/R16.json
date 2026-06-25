@@ -1,0 +1,63 @@
+{
+  "round": "R16",
+  "label": "Round of 16",
+  "_note": "Fill in each match: home/away set the score orientation used everywhere; kickoff/venue are optional. Keep the generated ids.",
+  "matches": [
+    {
+      "id": "R16-1",
+      "home": "",
+      "away": "",
+      "kickoff": "",
+      "venue": ""
+    },
+    {
+      "id": "R16-2",
+      "home": "",
+      "away": "",
+      "kickoff": "",
+      "venue": ""
+    },
+    {
+      "id": "R16-3",
+      "home": "",
+      "away": "",
+      "kickoff": "",
+      "venue": ""
+    },
+    {
+      "id": "R16-4",
+      "home": "",
+      "away": "",
+      "kickoff": "",
+      "venue": ""
+    },
+    {
+      "id": "R16-5",
+      "home": "",
+      "away": "",
+      "kickoff": "",
+      "venue": ""
+    },
+    {
+      "id": "R16-6",
+      "home": "",
+      "away": "",
+      "kickoff": "",
+      "venue": ""
+    },
+    {
+      "id": "R16-7",
+      "home": "",
+      "away": "",
+      "kickoff": "",
+      "venue": ""
+    },
+    {
+      "id": "R16-8",
+      "home": "",
+      "away": "",
+      "kickoff": "",
+      "venue": ""
+    }
+  ]
+}

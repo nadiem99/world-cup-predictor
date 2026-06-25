@@ -1,0 +1,22 @@
+{
+  "_note": "Bracket wiring: which prior-round winners feed each knockout slot, by SLOT id (not team names). 'slots' maps a match id to the two feeder match ids whose winners meet there. 'third_place' is fed by the two beaten semi-finalists. This uses a clean sequential pairing (R32-1 & R32-2 -> R16-1, ...); confirm the actual R32->R16 adjacency against the official FIFA 2026 bracket before relying on it for the connected tree view.",
+  "rounds": ["R32", "R16", "QF", "SF", "F"],
+  "slots": {
+    "R16-1": ["R32-1", "R32-2"],
+    "R16-2": ["R32-3", "R32-4"],
+    "R16-3": ["R32-5", "R32-6"],
+    "R16-4": ["R32-7", "R32-8"],
+    "R16-5": ["R32-9", "R32-10"],
+    "R16-6": ["R32-11", "R32-12"],
+    "R16-7": ["R32-13", "R32-14"],
+    "R16-8": ["R32-15", "R32-16"],
+    "QF-1": ["R16-1", "R16-2"],
+    "QF-2": ["R16-3", "R16-4"],
+    "QF-3": ["R16-5", "R16-6"],
+    "QF-4": ["R16-7", "R16-8"],
+    "SF-1": ["QF-1", "QF-2"],
+    "SF-2": ["QF-3", "QF-4"],
+    "F-1": ["SF-1", "SF-2"]
+  },
+  "third_place": {"id": "TP-1", "feeders": ["SF-1-loser", "SF-2-loser"]}
+}
