@@ -1,6 +1,6 @@
-# 🏆 World Cup 2026 — AI Models vs. You
+# 🏆 World Cup 2026 — AI Models vs. Nadiem
 
-A fun benchmark: how well do AI models (and you) predict the **2026 FIFA World Cup
+A fun benchmark: how well do AI models (and a human, Nadiem) predict the **2026 FIFA World Cup
 knockout rounds**? Each round, every model gets the real fixtures and predicts the
 score + who advances. Points are tallied into a leaderboard.
 
@@ -40,13 +40,17 @@ python -m src.models check    # verify the model ids in config/models.json are l
 `models check` lists any ids that need fixing and suggests valid alternatives.
 Edit [`config/models.json`](config/models.json) to add/remove models or set `"enabled": false`.
 
+Curious about cost? `python -m src.collect estimate all` prints an offline token/call
+ballpark — no key needed.
+
 ## Workflow each round
 
 1. **Enter the fixtures** for the round in `data/fixtures/<ROUND>.json`
-   (`R32`, `R16`, `QF`, `SF`, `TP`, `F`). The opening R32 match is pre-filled as a template.
+   (`R32`, `R16`, `QF`, `SF`, `TP`, `F`). Blank templates for every round already exist
+   (regenerate/add with `python -m src.scaffold all`); the opening R32 match is pre-filled.
 2. **Collect predictions — before kickoff:**
    ```bash
-   python -m src.collect round R32          # all models
+   python -m src.collect round R32          # all models in parallel (--workers N to tune)
    python -m src.collect me round R32       # enter your own picks (interactive)
    ```
    (Do `python -m src.collect bracket` and `... me bracket` once, before R32, for the bonus.)
@@ -56,8 +60,9 @@ Edit [`config/models.json`](config/models.json) to add/remove models or set `"en
    python -m src.score    # prints tables + writes data/scores.json
    python -m src.site     # writes output/index.html — open it in a browser
    ```
-   The site has three tabs: **Leaderboard**, **Bracket**, and a browsable **Predictions**
-   archive (every model's picks, per round and the one-shot bracket).
+   Or just run `make site`. The site has four tabs: **Leaderboard** (sortable, with
+   per-round sparklines), **Bracket** (connected tree), a browsable **Predictions** archive
+   (every model's picks), and **About**.
 
 ## Layout
 
@@ -65,11 +70,20 @@ Edit [`config/models.json`](config/models.json) to add/remove models or set `"en
 config/models.json        model roster (OpenRouter ids, display names, enabled flags)
 data/fixtures/<R>.json     the real fixtures you enter per round
 data/results/<R>.json      the real outcomes you enter per round
+data/bracket.json          knockout wiring (which slots feed which) for the bracket tree
 data/predictions/<R>/*.json  one file per model (+ Nadiem) per round
 data/predictions/bracket/*.json  one-shot full-bracket predictions
-output/index.html          the generated website (leaderboard + bracket + predictions)
-src/                       collect.py · score.py · site.py · models.py · prompts.py · common.py
+output/index.html          the generated website (leaderboard · bracket · predictions · about)
+src/      collect.py · score.py · site.py · scaffold.py · models.py · prompts.py · common.py
+tests/    stdlib unittest suite · Makefile · docs/DEPLOY.md
 ```
+
+## Develop & publish
+
+- `make site` build · `make serve` preview at :8000 · `make test` run tests · `make clean`
+- Tests run in CI on every push ([.github/workflows/ci.yml](.github/workflows/ci.yml)).
+- Publish to GitHub Pages — see [docs/DEPLOY.md](docs/DEPLOY.md). Pushing to `main` rebuilds
+  and redeploys automatically.
 
 ## Notes
 - Team names are matched case-insensitively. Keep names consistent between fixtures,
