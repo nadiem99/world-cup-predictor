@@ -5,6 +5,8 @@ Stdlib only — no third-party dependencies. Works on Python 3.9+.
 import json
 import os
 import re
+import socket
+import time
 import urllib.error
 import urllib.request
 from pathlib import Path
@@ -144,14 +146,73 @@ def _first_balanced(text):
 
 
 # ---------------------------------------------------------------------------
-# OpenRouter client (stdlib urllib)
+# OpenRouter client (stdlib urllib) — with retries/backoff and optional JSON mode
 # ---------------------------------------------------------------------------
+
+# HTTP status codes worth retrying: rate limiting + transient server errors.
+RETRYABLE_STATUS = (429, 500, 502, 503, 504)
+# Default backoff schedule (seconds): base 1s, exponential, capped.
+BACKOFF_BASE = 1.0
+BACKOFF_CAP = 30.0
+
+
+def _is_retryable_error(exc):
+    """Decide whether an exception from a chat call is transient and worth retrying.
+
+    Pure function (no network/sleep) so it can be unit-exercised offline.
+    Returns True for retryable HTTP statuses, socket timeouts, and URL/connection
+    errors. Non-retryable 4xx (e.g. 400/401/403/404) return False.
+    """
+    if isinstance(exc, urllib.error.HTTPError):
+        return exc.code in RETRYABLE_STATUS
+    # URLError wraps connection failures, DNS issues, and socket.timeout.
+    if isinstance(exc, urllib.error.URLError):
+        return True
+    if isinstance(exc, socket.timeout):
+        return True
+    return False
+
+
+def _backoff_seconds(attempt, retry_after=None):
+    """Backoff delay for a given 0-based attempt index.
+
+    Honours an explicit ``retry_after`` (seconds) when provided, otherwise uses
+    exponential backoff (BACKOFF_BASE * 2**attempt) capped at BACKOFF_CAP.
+    """
+    if retry_after is not None:
+        try:
+            return max(0.0, min(float(retry_after), BACKOFF_CAP))
+        except (TypeError, ValueError):
+            pass
+    return min(BACKOFF_BASE * (2 ** attempt), BACKOFF_CAP)
+
+
+def _parse_retry_after(exc):
+    """Extract a Retry-After delay (seconds) from an HTTPError, or None."""
+    if not isinstance(exc, urllib.error.HTTPError):
+        return None
+    try:
+        value = exc.headers.get("Retry-After")
+    except Exception:
+        return None
+    if not value:
+        return None
+    value = value.strip()
+    # Retry-After may be an integer number of seconds (we don't handle HTTP-date).
+    if value.isdigit():
+        return float(value)
+    return None
+
+
 class OpenRouter:
-    def __init__(self, api_key=None, temperature=None):
+    def __init__(self, api_key=None, temperature=None, max_retries=None):
         self.api_key = api_key or get_api_key()
         if temperature is None:
             temperature = float(os.environ.get("PREDICT_TEMPERATURE", "0.2"))
         self.temperature = temperature
+        if max_retries is None:
+            max_retries = int(os.environ.get("OPENROUTER_MAX_RETRIES", "3"))
+        self.max_retries = max(0, int(max_retries))
 
     def _headers(self):
         return {
@@ -161,8 +222,33 @@ class OpenRouter:
             "X-Title": "World Cup Model Predictor",
         }
 
-    def chat(self, model, system, user, temperature=None, timeout=180):
-        payload = {
+    def _post_once(self, payload, timeout):
+        """Single POST attempt. Raises on HTTP/network errors; returns content str."""
+        data = json.dumps(payload).encode("utf-8")
+        req = urllib.request.Request(
+            OPENROUTER_BASE + "/chat/completions",
+            data=data, headers=self._headers(), method="POST",
+        )
+        with urllib.request.urlopen(req, timeout=timeout) as resp:
+            body = json.loads(resp.read().decode("utf-8"))
+        msg = body["choices"][0]["message"]
+        content = msg.get("content")
+        if not content:
+            raise RuntimeError("empty content in response: %s" % json.dumps(body)[:500])
+        return content
+
+    def chat(self, model, system, user, temperature=None, timeout=180, json_mode=True):
+        """Call a model and return the message content string.
+
+        Retries transient failures (HTTP 429/5xx, timeouts, connection errors)
+        with exponential backoff up to ``self.max_retries`` times, honouring a
+        ``Retry-After`` header on 429 when present.
+
+        When ``json_mode`` is True we first try requesting a JSON object via
+        ``response_format``; if the provider rejects that field with an HTTP 400
+        we transparently retry the same request without it, so no model is lost.
+        """
+        base_payload = {
             "model": model,
             "messages": [
                 {"role": "system", "content": system},
@@ -170,22 +256,34 @@ class OpenRouter:
             ],
             "temperature": self.temperature if temperature is None else temperature,
         }
-        data = json.dumps(payload).encode("utf-8")
-        req = urllib.request.Request(
-            OPENROUTER_BASE + "/chat/completions",
-            data=data, headers=self._headers(), method="POST",
-        )
-        try:
-            with urllib.request.urlopen(req, timeout=timeout) as resp:
-                body = json.loads(resp.read().decode("utf-8"))
-        except urllib.error.HTTPError as e:
-            detail = e.read().decode("utf-8", "replace")
-            raise RuntimeError("HTTP %s from OpenRouter: %s" % (e.code, detail))
-        msg = body["choices"][0]["message"]
-        content = msg.get("content")
-        if not content:
-            raise RuntimeError("empty content in response: %s" % json.dumps(body)[:500])
-        return content
+        use_json = json_mode
+
+        attempt = 0
+        while True:
+            payload = dict(base_payload)
+            if use_json:
+                payload["response_format"] = {"type": "json_object"}
+            try:
+                return self._post_once(payload, timeout)
+            except urllib.error.HTTPError as e:
+                detail = e.read().decode("utf-8", "replace")
+                # Provider rejected an unknown field (response_format): drop JSON
+                # mode and retry immediately without consuming a backoff attempt.
+                if use_json and e.code == 400:
+                    use_json = False
+                    continue
+                if _is_retryable_error(e) and attempt < self.max_retries:
+                    delay = _backoff_seconds(attempt, _parse_retry_after(e))
+                    time.sleep(delay)
+                    attempt += 1
+                    continue
+                raise RuntimeError("HTTP %s from OpenRouter: %s" % (e.code, detail))
+            except (urllib.error.URLError, socket.timeout) as e:
+                if _is_retryable_error(e) and attempt < self.max_retries:
+                    time.sleep(_backoff_seconds(attempt))
+                    attempt += 1
+                    continue
+                raise RuntimeError("network error from OpenRouter: %s" % e)
 
     def list_models(self, timeout=60):
         req = urllib.request.Request(
