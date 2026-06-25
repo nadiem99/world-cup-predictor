@@ -1,8 +1,10 @@
 """Generate a single self-contained static site: output/index.html
 
-Three views (tabs): Leaderboard (Design-Arena inspired), Bracket, and a browsable
-Predictions archive. All data is embedded as JSON and rendered client-side with
-vanilla JS, so the file works opened locally or hosted anywhere. No dependencies.
+Four views (tabs): Leaderboard (Design-Arena inspired, sortable, with per-round
+sparklines), Bracket (connected knockout tree), a browsable Predictions archive, and
+About/methodology. All data is embedded as JSON and rendered client-side with vanilla
+JS, so the file works opened locally (file://) or hosted anywhere. No dependencies, no
+external assets.
 
   python -m src.site
 """
@@ -152,7 +154,7 @@ def main(argv=None):
 TEMPLATE = r"""<!doctype html>
 <html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>World Cup 2026 — AI Models vs. You</title>
+<title>World Cup 2026 — AI Models vs. Nadiem</title>
 <style>
   :root{ color-scheme:dark; }
   *{ box-sizing:border-box; }
@@ -162,9 +164,9 @@ TEMPLATE = r"""<!doctype html>
   .wrap{ max-width:1040px; margin:0 auto; padding:26px 20px 80px; }
   header h1{ font-size:1.6rem; margin:0 0 4px; letter-spacing:-.01em; }
   header .sub{ color:#8893ab; font-size:.9rem; }
-  .tabs{ display:flex; gap:6px; margin:22px 0 18px; border-bottom:1px solid #1e2433; }
+  .tabs{ display:flex; gap:6px; margin:22px 0 18px; border-bottom:1px solid #1e2433; overflow-x:auto; }
   .tab{ padding:10px 16px; cursor:pointer; color:#8893ab; font-weight:600; font-size:.92rem;
-        border-bottom:2px solid transparent; user-select:none; }
+        border-bottom:2px solid transparent; user-select:none; white-space:nowrap; }
   .tab:hover{ color:#cdd6ea; }
   .tab.active{ color:#fff; border-bottom-color:#5ee0a0; }
   .panel{ display:none; } .panel.active{ display:block; }
@@ -175,11 +177,13 @@ TEMPLATE = r"""<!doctype html>
   .seg button.on{ background:#222b3d; color:#fff; }
   select{ background:#141823; color:#e7ecf6; border:1px solid #232a3a; border-radius:8px;
           padding:8px 10px; font-size:.9rem; margin:0 8px 14px 0; }
+  .tw{ overflow-x:auto; }
   table{ width:100%; border-collapse:collapse; background:#10141e; border:1px solid #1e2433;
          border-radius:12px; overflow:hidden; font-size:.93rem; }
   th,td{ padding:11px 12px; border-bottom:1px solid #1a2030; text-align:center; }
   th{ background:#141a28; color:#9aa6c2; font-size:.72rem; text-transform:uppercase;
       letter-spacing:.05em; font-weight:700; }
+  th.sortable{ cursor:pointer; } th.sortable:hover{ color:#dfe6f5; }
   td.l,th.l{ text-align:left; } tr:last-child td{ border-bottom:none; }
   tr.rank1 td{ background:linear-gradient(90deg,rgba(244,196,90,.10),transparent); }
   .rk{ font-weight:800; color:#9aa6c2; width:34px; }
@@ -191,13 +195,21 @@ TEMPLATE = r"""<!doctype html>
   .muted{ color:#8893ab; }
   .empty{ padding:22px; background:#10141e; border:1px solid #1e2433; border-radius:12px;
           color:#8893ab; text-align:center; }
-  /* bracket */
-  .bracket{ display:flex; gap:14px; overflow-x:auto; padding-bottom:8px; }
-  .col{ min-width:172px; flex:0 0 auto; }
+  p.copy{ color:#a7b1c8; line-height:1.6; max-width:660px; font-size:.92rem; }
+  p.copy strong{ color:#e7ecf6; }
+  /* bracket tree */
+  .bracket{ display:flex; overflow-x:auto; padding-bottom:12px; }
+  .col{ display:flex; flex-direction:column; min-width:182px; padding:0 12px; }
+  .col:not(:last-child){ border-right:1px solid #1a2233; }
   .col h3{ font-size:.72rem; text-transform:uppercase; letter-spacing:.05em; color:#9aa6c2;
            margin:0 0 8px; text-align:center; }
-  .match{ background:#10141e; border:1px solid #1e2433; border-radius:9px; padding:8px 9px;
-          margin-bottom:8px; font-size:.84rem; }
+  .col-body{ flex:1; display:flex; flex-direction:column; justify-content:space-around; }
+  .match{ position:relative; background:#10141e; border:1px solid #1e2433; border-radius:9px;
+          padding:8px 9px; margin:6px 0; font-size:.84rem; }
+  .col:not(:last-child) .match::after{ content:''; position:absolute; top:50%; right:-13px;
+          width:12px; height:2px; background:#2a3550; }
+  .col:not(:first-child) .match::before{ content:''; position:absolute; top:50%; left:-13px;
+          width:12px; height:2px; background:#2a3550; }
   .match .row{ display:flex; justify-content:space-between; gap:8px; }
   .match .go{ color:#9aa6c2; font-variant-numeric:tabular-nums; }
   .win{ font-weight:800; color:#fff; }
@@ -208,20 +220,29 @@ TEMPLATE = r"""<!doctype html>
   .ok{ color:#7ee2a8; } .no{ color:#6b7488; }
   h2.section{ font-size:1.05rem; margin:26px 0 12px; color:#c7d0e6; }
   .legend{ font-size:.8rem; color:#8893ab; margin:10px 2px 0; }
+  @media (max-width:560px){
+    .wrap{ padding:18px 12px 56px; }
+    header h1{ font-size:1.3rem; }
+    th,td{ padding:8px 7px; font-size:.86rem; }
+    .badge{ font-size:.6rem; }
+    .spk{ display:none; }
+  }
 </style></head>
 <body><div class="wrap">
   <header>
-    <h1>🏆 World Cup 2026 — AI Models vs. You</h1>
+    <h1>🏆 World Cup 2026 — AI Models vs. Nadiem</h1>
     <div class="sub" id="subtitle"></div>
   </header>
   <div class="tabs">
     <div class="tab active" data-tab="lb">Leaderboard</div>
     <div class="tab" data-tab="br">Bracket</div>
     <div class="tab" data-tab="pr">Predictions</div>
+    <div class="tab" data-tab="ab">About</div>
   </div>
   <div class="panel active" id="lb"></div>
   <div class="panel" id="br"></div>
   <div class="panel" id="pr"></div>
+  <div class="panel" id="ab"></div>
 </div>
 <script>
 /*__DATA__*/
@@ -240,17 +261,14 @@ TEMPLATE = r"""<!doctype html>
   function lname(rl){ return D.round_labels[rl]||rl; }
 
   /* ---------- Leaderboard ---------- */
+  var lbSort={key:'points',dir:-1};
   function leaderboard(){
     var el=document.getElementById('lb');
-    var roundsTxt=(D.leaderboard.rounds||[]).map(lname).join(', ')||'none yet';
-    var html='<div class="seg"><button class="on" data-v="main">Per-round</button>'+
-             '<button data-v="bracket">Bracket bonus</button></div>'+
-             '<div id="lbbody"></div>';
-    el.innerHTML=html;
+    el.innerHTML='<div class="seg"><button class="on" data-v="main">Per-round</button>'+
+      '<button data-v="bracket">Bracket bonus</button></div><div id="lbbody"></div>';
     function render(v){
-      var box=document.getElementById('lbbody');
-      if(v==='main') box.innerHTML=mainTable();
-      else box.innerHTML=bracketTable();
+      document.getElementById('lbbody').innerHTML=(v==='main')?mainBoard():bracketBoard();
+      if(v==='main') bindSort();
     }
     el.querySelectorAll('.seg button').forEach(function(b){
       b.onclick=function(){ el.querySelectorAll('.seg button').forEach(function(x){x.classList.remove('on');});
@@ -258,39 +276,62 @@ TEMPLATE = r"""<!doctype html>
     });
     render('main');
   }
-  function mainTable(){
-    var rows=D.leaderboard.rows||[];
+  function sparkline(r,rounds){
+    var vals=rounds.map(function(rl){ return (r.by_round&&r.by_round[rl]!=null)?r.by_round[rl]:0; });
+    var mx=Math.max.apply(null,vals.concat([1])), w=8, gap=3, H=18, tw=vals.length*(w+gap);
+    var bars=vals.map(function(v,i){ var bh=Math.max(1,Math.round(v/mx*H));
+      return '<rect x="'+(i*(w+gap))+'" y="'+(H-bh)+'" width="'+w+'" height="'+bh+'" rx="1" fill="#5ee0a0"></rect>'; }).join('');
+    return '<svg width="'+tw+'" height="'+H+'" viewBox="0 0 '+tw+' '+H+'" aria-hidden="true">'+bars+'</svg>';
+  }
+  function mainBoard(){
+    var rows=(D.leaderboard.rows||[]).slice();
     if(!rows.length) return '<div class="empty">No scored matches yet — collect predictions and enter results.</div>';
+    rows.sort(function(a,b){ var av=a[lbSort.key], bv=b[lbSort.key];
+      if(av<bv) return -lbSort.dir; if(av>bv) return lbSort.dir;
+      return a.name.toLowerCase()<b.name.toLowerCase()?-1:1; });
     var max=Math.max.apply(null,rows.map(function(r){return r.points;}))||1;
-    var h='<table><tr><th class="rk">#</th><th class="l">Model</th><th>Points</th>'+
-      '<th>Exact scores</th><th>Correct results</th><th>Matches</th></tr>';
+    var rounds=D.leaderboard.rounds||[], multi=rounds.length>1;
+    function arr(k){ return lbSort.key===k?(lbSort.dir<0?' ▾':' ▴'):''; }
+    var h='<div class="tw"><table><tr><th class="rk">#</th><th class="l">Model</th>'+
+      '<th class="sortable" data-k="points">Points'+arr('points')+'</th>'+
+      '<th class="sortable" data-k="exact">Exact'+arr('exact')+'</th>'+
+      '<th class="sortable" data-k="correct">Results'+arr('correct')+'</th>'+
+      '<th>Matches</th>'+(multi?'<th class="spk">By round</th>':'')+'</tr>';
     rows.forEach(function(r,i){
       var w=Math.round(r.points/max*100);
-      h+='<tr class="rank'+(i+1)+'"><td class="rk">'+(i+1)+'</td>'+
-        '<td class="l">'+modelCell(r.name,r.provider)+'</td>'+
+      var lead=(i===0 && lbSort.key==='points' && lbSort.dir<0)?' class="rank1"':'';
+      h+='<tr'+lead+'><td class="rk">'+(i+1)+'</td><td class="l">'+modelCell(r.name,r.provider)+'</td>'+
         '<td><span class="pts">'+r.points+'</span><div class="bar" style="width:'+w+'%"></div></td>'+
-        '<td>'+r.exact+'</td><td>'+r.correct+'</td><td>'+r.scored+'</td></tr>';
+        '<td>'+r.exact+'</td><td>'+r.correct+'</td><td>'+r.scored+'</td>'+
+        (multi?'<td class="spk">'+sparkline(r,rounds)+'</td>':'')+'</tr>';
     });
-    return h+'</table><div class="legend">Exact regulation/ET scoreline = +'+D.scoring.exact+
-      ', correct advancing team = +'+D.scoring.result+' (best of the two per match).</div>';
+    return h+'</table></div><div class="legend">Click a column to sort. Exact regulation/ET scoreline = +'+
+      D.scoring.exact+', correct advancing team = +'+D.scoring.result+' (best of the two per match).</div>';
   }
-  function bracketTable(){
+  function bindSort(){
+    document.querySelectorAll('#lbbody th.sortable').forEach(function(th){
+      th.onclick=function(){ var k=th.dataset.k;
+        if(lbSort.key===k) lbSort.dir=-lbSort.dir; else { lbSort.key=k; lbSort.dir=-1; }
+        document.getElementById('lbbody').innerHTML=mainBoard(); bindSort(); };
+    });
+  }
+  function bracketBoard(){
     var rows=D.bracket_board.rows||[];
     if(!rows.length) return '<div class="empty">No one-shot bracket predictions collected yet.</div>';
     var note=D.bracket_board.have_results?'':' <span class="muted">(no knockout results yet — all zero so far)</span>';
     var max=Math.max.apply(null,rows.map(function(r){return r.points;}))||1;
     var h='<div class="legend" style="margin-bottom:10px">One-shot full bracket, locked before the Round of 32.'+note+'</div>'+
-      '<table><tr><th class="rk">#</th><th class="l">Model</th><th>Points</th><th class="l">Champion pick</th></tr>';
+      '<div class="tw"><table><tr><th class="rk">#</th><th class="l">Model</th><th>Points</th><th class="l">Champion pick</th></tr>';
     rows.forEach(function(r,i){
       var w=Math.round(r.points/max*100);
-      h+='<tr class="rank'+(i+1)+'"><td class="rk">'+(i+1)+'</td><td class="l">'+modelCell(r.name,r.provider)+'</td>'+
+      h+='<tr'+(i===0?' class="rank1"':'')+'><td class="rk">'+(i+1)+'</td><td class="l">'+modelCell(r.name,r.provider)+'</td>'+
         '<td><span class="pts">'+r.points+'</span><div class="bar" style="width:'+w+'%"></div></td>'+
         '<td class="l">'+esc(r.champion_pick||'—')+'</td></tr>';
     });
-    return h+'</table>';
+    return h+'</table></div>';
   }
 
-  /* ---------- Bracket ---------- */
+  /* ---------- Bracket tree ---------- */
   function bracketView(){
     var el=document.getElementById('br');
     var cols=D.round_order.filter(function(rl){ return rl!=='TP' && D.fixtures[rl]; });
@@ -299,16 +340,12 @@ TEMPLATE = r"""<!doctype html>
     else{
       html='<div class="bracket">';
       cols.forEach(function(rl){
-        html+='<div class="col"><h3>'+esc(lname(rl))+'</h3>';
-        D.fixtures[rl].forEach(function(m){
-          var r=(D.results[rl]||{})[m.id];
-          html+=matchCard(m,r);
-        });
-        html+='</div>';
+        html+='<div class="col"><h3>'+esc(lname(rl))+'</h3><div class="col-body">';
+        D.fixtures[rl].forEach(function(m){ html+=matchCard(m,(D.results[rl]||{})[m.id]); });
+        html+='</div></div>';
       });
       html+='</div>';
     }
-    // model bracket comparison
     var bp=D.bracket_predictions||[];
     if(bp.length){
       var opts=bp.map(function(b){ return '<option value="'+esc(b.slug)+'">'+esc(b.name)+'</option>'; }).join('');
@@ -319,15 +356,15 @@ TEMPLATE = r"""<!doctype html>
     var sel=document.getElementById('brsel');
     if(sel){ sel.onchange=function(){ renderCmp(sel.value); }; renderCmp(sel.value); }
   }
+  function teamName(t){ return t?esc(t):'<span class="muted">TBD</span>'; }
   function matchCard(m,r){
-    var home=esc(m.home), away=esc(m.away);
     if(r){
       var hw=norm(r.advances)===norm(m.home), aw=norm(r.advances)===norm(m.away);
-      return '<div class="match"><div class="row"><span class="'+(hw?'win':'')+'">'+home+'</span><span class="go">'+r.home_goals+'</span></div>'+
-        '<div class="row"><span class="'+(aw?'win':'')+'">'+away+'</span><span class="go">'+r.away_goals+'</span></div></div>';
+      return '<div class="match"><div class="row"><span class="'+(hw?'win':'')+'">'+teamName(m.home)+'</span><span class="go">'+r.home_goals+'</span></div>'+
+        '<div class="row"><span class="'+(aw?'win':'')+'">'+teamName(m.away)+'</span><span class="go">'+r.away_goals+'</span></div></div>';
     }
-    return '<div class="match"><div class="row"><span>'+home+'</span><span class="go">·</span></div>'+
-      '<div class="row"><span>'+away+'</span><span class="go">·</span></div></div>';
+    return '<div class="match"><div class="row"><span>'+teamName(m.home)+'</span><span class="go">·</span></div>'+
+      '<div class="row"><span>'+teamName(m.away)+'</span><span class="go">·</span></div></div>';
   }
   function renderCmp(slug){
     var b=(D.bracket_predictions||[]).filter(function(x){return x.slug===slug;})[0];
@@ -358,9 +395,7 @@ TEMPLATE = r"""<!doctype html>
     el.innerHTML='<select id="prround">'+ropts+'</select><select id="prmodel"></select><div id="prbody"></div>';
     var rsel=document.getElementById('prround'), msel=document.getElementById('prmodel');
     function fillModels(){
-      var v=rsel.value, list;
-      if(v==='__bracket') list=D.bracket_predictions;
-      else list=D.round_predictions[v];
+      var v=rsel.value, list=(v==='__bracket')?D.bracket_predictions:D.round_predictions[v];
       msel.innerHTML=list.map(function(x){ return '<option value="'+esc(x.slug)+'">'+esc(x.name)+'</option>'; }).join('');
     }
     function render(){
@@ -381,7 +416,7 @@ TEMPLATE = r"""<!doctype html>
     var scored=p.scored;
     var h='<div class="legend" style="margin-bottom:10px">'+esc(p.name)+
       (scored?(' — '+p.total+' pts this round'):' — not yet played')+'</div>'+
-      '<table><tr><th class="l">Match</th><th>Predicted</th><th>Advances</th>'+
+      '<div class="tw"><table><tr><th class="l">Match</th><th>Predicted</th><th>Advances</th>'+
       (scored?'<th>Actual</th><th>Pts</th>':'')+'</tr>';
     p.predictions.forEach(function(m){
       var pred=esc(m.home)+' '+m.ph+'–'+m.pa+' '+esc(m.away);
@@ -395,7 +430,7 @@ TEMPLATE = r"""<!doctype html>
         '<td>'+pred+'</td><td class="'+advCls+'">'+esc(m.adv)+'</td>'+
         (scored?('<td class="muted">'+actual+'</td><td>'+pts+'</td>'):'')+'</tr>';
     });
-    return h+'</table>';
+    return h+'</table></div>';
   }
   function bracketPredTable(b){
     var ab=D.actual_bracket||{};
@@ -408,9 +443,29 @@ TEMPLATE = r"""<!doctype html>
       return '<tr><td class="l muted">'+label+'</td><td class="l"><div class="chips">'+chips+'</div></td></tr>';
     }
     return '<div class="legend" style="margin-bottom:10px">'+esc(b.name)+' — one-shot bracket — '+b.points+' pts</div>'+
-      '<table>'+row('R16','Round of 16')+row('QF','Quarter-finals')+row('SF','Semi-finals')+
+      '<div class="tw"><table>'+row('R16','Round of 16')+row('QF','Quarter-finals')+row('SF','Semi-finals')+
       row('F','Finalists')+'<tr><td class="l muted">Champion</td><td class="l">'+esc(b.rounds.champion||'—')+'</td></tr>'+
-      '<tr><td class="l muted">Third place</td><td class="l">'+esc(b.rounds.third||'—')+'</td></tr></table>';
+      '<tr><td class="l muted">Third place</td><td class="l">'+esc(b.rounds.third||'—')+'</td></tr></table></div>';
+  }
+
+  /* ---------- About / methodology ---------- */
+  function about(){
+    var s=D.scoring;
+    var stageTxt=Object.keys(s.stage).map(function(k){return k+' +'+s.stage[k];}).join(', ');
+    document.getElementById('ab').innerHTML=
+      '<h2 class="section">How it works</h2>'+
+      '<p class="copy">Each knockout round of the 2026 World Cup, every AI model — and Nadiem — predicts '+
+      'the score and who advances. Two leaderboards run at once.</p>'+
+      '<h2 class="section">Per-round contest (main)</h2>'+
+      '<p class="copy">Before each round, every model sees the real fixtures and predicts only that round, '+
+      'so early mistakes don\'t compound. Scoring per match is <strong>non-stacking</strong>: '+
+      '<strong>+'+s.exact+'</strong> for the exact regulation/extra-time scoreline (penalty shootouts '+
+      'ignored), otherwise <strong>+'+s.result+'</strong> for the correct advancing team.</p>'+
+      '<h2 class="section">One-shot bracket bonus</h2>'+
+      '<p class="copy">Collected once before the Round of 32: each model calls the entire bracket to the '+
+      'champion. Points for every team correctly predicted to reach a stage ('+esc(stageTxt)+' per correct '+
+      'team), champion <strong>+'+s.champion+'</strong>, third place <strong>+'+s.third+'</strong>.</p>'+
+      '<p class="legend">Generated '+esc(D.generated)+'.</p>';
   }
 
   /* ---------- init ---------- */
@@ -424,7 +479,7 @@ TEMPLATE = r"""<!doctype html>
       t.classList.add('active'); document.getElementById(t.dataset.tab).classList.add('active');
     };
   });
-  leaderboard(); bracketView(); predictions();
+  leaderboard(); bracketView(); predictions(); about();
 })();
 </script>
 </body></html>
