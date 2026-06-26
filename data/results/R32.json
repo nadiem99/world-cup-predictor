@@ -1,13 +1,22 @@
 {
   "round": "R32",
-  "_note": "Add the real outcome of each match as it finishes. home_goals/away_goals = score at the end of regulation+extra time (NOT including a penalty shootout). 'advances' = the team that goes through. 'decided_by' is one of regulation|extra_time|penalties. Only matches with goals filled in are scored.",
+  "_note": "Fill in each match as it finishes. home_goals/away_goals = score at the end of regulation+extra time (NOT including a penalty shootout). 'advances' = the team that goes through. 'decided_by' is one of regulation|extra_time|penalties. Only matches with non-null goals are scored.",
   "matches": [
-    {
-      "id": "R32-1",
-      "home_goals": null,
-      "away_goals": null,
-      "advances": "",
-      "decided_by": "regulation"
-    }
+    {"id": "R32-1",  "home_goals": null, "away_goals": null, "advances": "", "decided_by": "regulation"},
+    {"id": "R32-2",  "home_goals": null, "away_goals": null, "advances": "", "decided_by": "regulation"},
+    {"id": "R32-3",  "home_goals": null, "away_goals": null, "advances": "", "decided_by": "regulation"},
+    {"id": "R32-4",  "home_goals": null, "away_goals": null, "advances": "", "decided_by": "regulation"},
+    {"id": "R32-5",  "home_goals": null, "away_goals": null, "advances": "", "decided_by": "regulation"},
+    {"id": "R32-6",  "home_goals": null, "away_goals": null, "advances": "", "decided_by": "regulation"},
+    {"id": "R32-7",  "home_goals": null, "away_goals": null, "advances": "", "decided_by": "regulation"},
+    {"id": "R32-8",  "home_goals": null, "away_goals": null, "advances": "", "decided_by": "regulation"},
+    {"id": "R32-9",  "home_goals": null, "away_goals": null, "advances": "", "decided_by": "regulation"},
+    {"id": "R32-10", "home_goals": null, "away_goals": null, "advances": "", "decided_by": "regulation"},
+    {"id": "R32-11", "home_goals": null, "away_goals": null, "advances": "", "decided_by": "regulation"},
+    {"id": "R32-12", "home_goals": null, "away_goals": null, "advances": "", "decided_by": "regulation"},
+    {"id": "R32-13", "home_goals": null, "away_goals": null, "advances": "", "decided_by": "regulation"},
+    {"id": "R32-14", "home_goals": null, "away_goals": null, "advances": "", "decided_by": "regulation"},
+    {"id": "R32-15", "home_goals": null, "away_goals": null, "advances": "", "decided_by": "regulation"},
+    {"id": "R32-16", "home_goals": null, "away_goals": null, "advances": "", "decided_by": "regulation"}
   ]
 }
