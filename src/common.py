@@ -155,6 +155,11 @@ RETRYABLE_STATUS = (429, 500, 502, 503, 504)
 BACKOFF_BASE = 1.0
 BACKOFF_CAP = 30.0
 
+# Optional request features that some providers/models reject with HTTP 400.
+# On a 400 we drop them one at a time, in this order, and retry — so a model
+# that doesn't support JSON mode or a custom temperature is never lost.
+OPTIONAL_DROP_ORDER = ["json", "temperature"]
+
 
 def _is_retryable_error(exc):
     """Decide whether an exception from a chat call is transient and worth retrying.
@@ -204,6 +209,65 @@ def _parse_retry_after(exc):
     return None
 
 
+def _build_payload(model, system, user, temperature, active, extra=None):
+    """Build a chat-completions payload (pure function, unit-testable).
+
+    ``active`` is the set of currently-enabled optional features
+    (subset of OPTIONAL_DROP_ORDER): "temperature" includes the temperature
+    field, "json" requests a JSON object via ``response_format``. ``extra`` is
+    a dict of per-model params (e.g. ``max_tokens``, ``provider``) merged last.
+    """
+    payload = {
+        "model": model,
+        "messages": [
+            {"role": "system", "content": system},
+            {"role": "user", "content": user},
+        ],
+    }
+    if "temperature" in active and temperature is not None:
+        payload["temperature"] = temperature
+    if "json" in active:
+        payload["response_format"] = {"type": "json_object"}
+    if extra:
+        for k, v in extra.items():
+            payload[k] = v
+    return payload
+
+
+def _drop_one(active):
+    """Remove the next droppable feature from ``active`` (mutates it).
+
+    Returns the dropped feature name, or None if nothing left to drop.
+    """
+    for feat in OPTIONAL_DROP_ORDER:
+        if feat in active:
+            active.discard(feat)
+            return feat
+    return None
+
+
+def model_kwargs(m):
+    """Translate a config/models.json entry into OpenRouter.chat() kwargs.
+
+    Honours optional per-model overrides so quirky models work without code
+    changes:
+      * ``json_mode`` (bool)      — disable JSON mode for models that reject it
+      * ``temperature`` (number)  — override sampling temperature (e.g. 1 for
+                                    reasoning models that require the default)
+      * ``params`` (dict)         — extra request fields merged verbatim, e.g.
+                                    ``{"max_tokens": 6000, "provider": {...}}``
+    Returns only the keys that are set, so callers can ``client.chat(..., **kw)``.
+    """
+    kw = {}
+    if "json_mode" in m:
+        kw["json_mode"] = bool(m["json_mode"])
+    if m.get("temperature") is not None:
+        kw["temperature"] = m["temperature"]
+    if m.get("params"):
+        kw["extra"] = dict(m["params"])
+    return kw
+
+
 class OpenRouter:
     def __init__(self, api_key=None, temperature=None, max_retries=None):
         self.api_key = api_key or get_api_key()
@@ -237,40 +301,38 @@ class OpenRouter:
             raise RuntimeError("empty content in response: %s" % json.dumps(body)[:500])
         return content
 
-    def chat(self, model, system, user, temperature=None, timeout=180, json_mode=True):
+    def chat(self, model, system, user, temperature=None, timeout=180,
+             json_mode=True, extra=None):
         """Call a model and return the message content string.
 
         Retries transient failures (HTTP 429/5xx, timeouts, connection errors)
         with exponential backoff up to ``self.max_retries`` times, honouring a
         ``Retry-After`` header on 429 when present.
 
-        When ``json_mode`` is True we first try requesting a JSON object via
-        ``response_format``; if the provider rejects that field with an HTTP 400
-        we transparently retry the same request without it, so no model is lost.
+        Optional request features (a JSON ``response_format`` when ``json_mode``
+        is set, and the ``temperature`` field) are dropped one at a time on an
+        HTTP 400 and the request retried — so a model that rejects JSON mode or
+        a custom temperature still succeeds rather than being lost. ``extra`` is
+        a dict of per-model params merged into the payload (e.g. ``max_tokens``,
+        provider routing); it is never auto-dropped.
         """
-        base_payload = {
-            "model": model,
-            "messages": [
-                {"role": "system", "content": system},
-                {"role": "user", "content": user},
-            ],
-            "temperature": self.temperature if temperature is None else temperature,
-        }
-        use_json = json_mode
+        resolved_temp = self.temperature if temperature is None else temperature
+        active = set()
+        if resolved_temp is not None:
+            active.add("temperature")
+        if json_mode:
+            active.add("json")
 
         attempt = 0
         while True:
-            payload = dict(base_payload)
-            if use_json:
-                payload["response_format"] = {"type": "json_object"}
+            payload = _build_payload(model, system, user, resolved_temp, active, extra)
             try:
                 return self._post_once(payload, timeout)
             except urllib.error.HTTPError as e:
                 detail = e.read().decode("utf-8", "replace")
-                # Provider rejected an unknown field (response_format): drop JSON
-                # mode and retry immediately without consuming a backoff attempt.
-                if use_json and e.code == 400:
-                    use_json = False
+                # Provider rejected a field: drop the next optional feature and
+                # retry immediately, without consuming a backoff attempt.
+                if e.code == 400 and _drop_one(active) is not None:
                     continue
                 if _is_retryable_error(e) and attempt < self.max_retries:
                     delay = _backoff_seconds(attempt, _parse_retry_after(e))

@@ -79,5 +79,56 @@ class TestLoadEnv(unittest.TestCase):
         os.environ.pop(key, None)
 
 
+class TestBuildPayload(unittest.TestCase):
+    def test_full_payload(self):
+        p = common._build_payload("m", "sys", "usr", 0.2, {"temperature", "json"})
+        self.assertEqual(p["model"], "m")
+        self.assertEqual(p["temperature"], 0.2)
+        self.assertEqual(p["response_format"], {"type": "json_object"})
+        self.assertEqual(p["messages"][0], {"role": "system", "content": "sys"})
+        self.assertEqual(p["messages"][1], {"role": "user", "content": "usr"})
+
+    def test_inactive_features_omitted(self):
+        p = common._build_payload("m", "s", "u", 0.2, set())
+        self.assertNotIn("temperature", p)
+        self.assertNotIn("response_format", p)
+
+    def test_none_temperature_omitted_even_if_active(self):
+        p = common._build_payload("m", "s", "u", None, {"temperature"})
+        self.assertNotIn("temperature", p)
+
+    def test_extra_params_merge(self):
+        p = common._build_payload("m", "s", "u", None, {"json"},
+                                  {"max_tokens": 50, "provider": {"order": ["x"]}})
+        self.assertEqual(p["max_tokens"], 50)
+        self.assertEqual(p["provider"], {"order": ["x"]})
+        self.assertIn("response_format", p)
+
+
+class TestDropOne(unittest.TestCase):
+    def test_drops_json_then_temperature(self):
+        active = {"json", "temperature"}
+        self.assertEqual(common._drop_one(active), "json")
+        self.assertEqual(active, {"temperature"})
+        self.assertEqual(common._drop_one(active), "temperature")
+        self.assertEqual(active, set())
+        self.assertIsNone(common._drop_one(active))
+
+
+class TestModelKwargs(unittest.TestCase):
+    def test_no_overrides_is_empty(self):
+        self.assertEqual(common.model_kwargs({"id": "x", "slug": "x"}), {})
+
+    def test_all_overrides(self):
+        kw = common.model_kwargs({"id": "x", "json_mode": False, "temperature": 1,
+                                  "params": {"max_tokens": 9}})
+        self.assertEqual(kw, {"json_mode": False, "temperature": 1,
+                              "extra": {"max_tokens": 9}})
+
+    def test_json_mode_true_is_passed(self):
+        self.assertEqual(common.model_kwargs({"id": "x", "json_mode": True}),
+                         {"json_mode": True})
+
+
 if __name__ == "__main__":
     unittest.main()

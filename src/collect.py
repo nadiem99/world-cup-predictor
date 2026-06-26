@@ -20,7 +20,7 @@ from datetime import datetime, timezone
 from . import prompts
 from .common import (
     FIXTURES_DIR, PRED_DIR, ROUND_ORDER, OpenRouter, enabled_models, load_json,
-    load_models_config, save_json,
+    load_models_config, model_kwargs, save_json,
 )
 
 DEFAULT_WORKERS = 6
@@ -97,7 +97,8 @@ def collect_round(round_label, only=None, workers=DEFAULT_WORKERS):
         out_path = PRED_DIR / round_label / ("%s.json" % m["slug"])
         try:
             raw = client.chat(m["id"], prompts.SYSTEM,
-                              prompts.round_prompt(label, matches))
+                              prompts.round_prompt(label, matches),
+                              **model_kwargs(m))
             preds = prompts.parse_round(raw, matches)
             save_json(out_path, {
                 "round": round_label, "model": m["id"], "slug": m["slug"],
@@ -127,7 +128,8 @@ def collect_bracket(only=None, workers=DEFAULT_WORKERS):
     def worker(m):
         out_path = PRED_DIR / "bracket" / ("%s.json" % m["slug"])
         try:
-            raw = client.chat(m["id"], prompts.SYSTEM, prompts.bracket_prompt(matches))
+            raw = client.chat(m["id"], prompts.SYSTEM, prompts.bracket_prompt(matches),
+                              **model_kwargs(m))
             rounds = prompts.parse_bracket(raw)
             save_json(out_path, {
                 "model": m["id"], "slug": m["slug"], "name": m["name"],
