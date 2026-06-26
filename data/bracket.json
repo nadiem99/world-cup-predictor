@@ -1,5 +1,5 @@
 {
-  "_note": "Bracket wiring: which prior-round winners feed each knockout slot, by SLOT id (not team names). 'slots' maps a match id to the two feeder match ids whose winners meet there. 'third_place' is fed by the two beaten semi-finalists. This uses a clean sequential pairing (R32-1 & R32-2 -> R16-1, ...); confirm the actual R32->R16 adjacency against the official FIFA 2026 bracket before relying on it for the connected tree view.",
+  "_note": "Bracket wiring by SLOT id (not team names). 'slots' maps a match id to the two feeder match ids whose winners meet there; 'third_place' is fed by the two beaten semi-finalists. CONFIRMED against the official FIFA 2026 bracket (en.wikipedia.org/wiki/2026_FIFA_World_Cup_knockout_stage, Jun 25): the R32 fixtures in data/fixtures/R32.json are ordered in the official bracket 'leaf' order, so the clean sequential pairing below (R32-1 & R32-2 -> R16-1, ...) reproduces the real adjacency exactly. 'r32_slots' records which official FIFA match number + group-position each R32 id corresponds to.",
   "rounds": ["R32", "R16", "QF", "SF", "F"],
   "slots": {
     "R16-1": ["R32-1", "R32-2"],
@@ -18,5 +18,23 @@
     "SF-2": ["QF-3", "QF-4"],
     "F-1": ["SF-1", "SF-2"]
   },
-  "third_place": {"id": "TP-1", "feeders": ["SF-1-loser", "SF-2-loser"]}
+  "third_place": {"id": "TP-1", "feeders": ["SF-1-loser", "SF-2-loser"]},
+  "r32_slots": {
+    "R32-1":  {"match_no": 74, "slot": "Winner E vs 3rd A/B/C/D/F"},
+    "R32-2":  {"match_no": 77, "slot": "Winner I vs 3rd C/D/F/G/H"},
+    "R32-3":  {"match_no": 73, "slot": "Runner-up A vs Runner-up B"},
+    "R32-4":  {"match_no": 75, "slot": "Winner F vs Runner-up C"},
+    "R32-5":  {"match_no": 83, "slot": "Runner-up K vs Runner-up L"},
+    "R32-6":  {"match_no": 84, "slot": "Winner H vs Runner-up J"},
+    "R32-7":  {"match_no": 81, "slot": "Winner D vs 3rd B/E/F/I/J"},
+    "R32-8":  {"match_no": 82, "slot": "Winner G vs 3rd A/H/I/J"},
+    "R32-9":  {"match_no": 76, "slot": "Winner C vs Runner-up F"},
+    "R32-10": {"match_no": 78, "slot": "Runner-up E vs Runner-up I"},
+    "R32-11": {"match_no": 79, "slot": "Winner A vs 3rd C/E/F/H/I"},
+    "R32-12": {"match_no": 80, "slot": "Winner L vs 3rd E/I/J/K"},
+    "R32-13": {"match_no": 86, "slot": "Winner J vs Runner-up H"},
+    "R32-14": {"match_no": 88, "slot": "Runner-up D vs Runner-up G"},
+    "R32-15": {"match_no": 85, "slot": "Winner B vs 3rd E/F/G/I/J"},
+    "R32-16": {"match_no": 87, "slot": "Winner K vs 3rd D/E/I/J/L"}
+  }
 }
