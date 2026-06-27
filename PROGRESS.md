@@ -96,13 +96,15 @@ The 32 qualifiers (12 winners, 12 runners-up, 8 best third-placed) are now known
   you change ids. `collect … --workers N` controls parallelism (default 6).
 
 ## 🔜 Still to do / open questions
-- **Add the OpenRouter key** (in progress) → then run `models check` + `models ping`.
-- **Finalize R32 teams** on ~Jun 27 — Runbook A.
-- **Collect the baseline** before Jun 28 — Runbook B.
-- **Validate the 24 model ids** against the live OpenRouter catalogue (the ids are
-  best-guess for mid-2026); fix or disable any that `check`/`ping` flag.
-- **Roster size** — keep all 24 or trim the priciest? Estimated **~$2–5** total for the
-  whole tournament, so keeping all 24 is fine; verify empirically after the first collection.
+- ✅ **Setup complete** — key + $10 credits added; all **24/24** model ids validated and
+  responding live (`models ping` all-green, incl. reasoning models — no overrides needed).
+- **Finalize R32 teams** on ~Jun 27 — Runbook A. ⚠️ Do **not** collect before this: the
+  fixtures still hold `Winner E` / `3rd …` placeholders, not real teams.
+- **Collect the baseline** before the Jun 28 kickoff — Runbook B.
+- **Roster size** — all 24 enabled; ~**$2–5** estimated total, so keeping all is fine. The
+  lineup mixes Gemini 3.1 Pro with Gemini 2.5 Pro/Flash — modernize if you prefer.
+- _(Optional)_ rotate the API key (it was shared in chat); regenerate at
+  https://openrouter.ai/keys and re-stage `.env`.
 
 ## 🔧 Quick command reference
 ```bash
