@@ -8,6 +8,22 @@ SYSTEM = (
 )
 
 
+def _as_json(text):
+    """Parse a model response to JSON, recovering double-encoded strings.
+
+    Some models return the JSON as a quoted string (a JSON string whose value
+    is itself JSON). When that happens we parse the inner payload too, so the
+    caller always gets the underlying object/array rather than a bare string.
+    """
+    data = extract_json(text)
+    if isinstance(data, str):
+        try:
+            data = extract_json(data)
+        except Exception:
+            pass
+    return data
+
+
 def round_prompt(round_label, matches):
     fixtures = "\n".join(
         '  - id "%s": %s vs %s' % (m["id"], m["home"], m["away"]) for m in matches
@@ -32,8 +48,13 @@ def round_prompt(round_label, matches):
 
 
 def parse_round(text, matches):
-    data = extract_json(text)
-    preds = data["predictions"] if isinstance(data, dict) else data
+    data = _as_json(text)
+    if isinstance(data, dict):
+        preds = data.get("predictions", [])
+    elif isinstance(data, list):
+        preds = data
+    else:
+        raise ValueError("round response was not valid JSON")
     valid_ids = {m["id"] for m in matches}
     name_by_id = {m["id"]: (m["home"], m["away"]) for m in matches}
     out = []
@@ -80,7 +101,9 @@ def bracket_prompt(r32_matches):
 
 
 def parse_bracket(text):
-    data = extract_json(text)
+    data = _as_json(text)
+    if not isinstance(data, dict):
+        raise ValueError("bracket response was not a JSON object")
     rounds = {}
     for key in ("R16", "QF", "SF", "F"):
         rounds[key] = [str(t).strip() for t in data.get(key, []) if str(t).strip()]

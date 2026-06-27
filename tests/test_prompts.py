@@ -47,6 +47,17 @@ class TestParseRound(unittest.TestCase):
         out = prompts.parse_round(txt, MATCHES)
         self.assertEqual(out[0]["advances"], "USA")
 
+    def test_double_encoded_json_string(self):
+        # some models return the JSON as a quoted string; we recover the payload
+        inner = '{"predictions":[{"id":"R32-1","home_goals":1,"away_goals":0,"advances":"South Africa"}]}'
+        txt = __import__("json").dumps(inner)  # a JSON string whose value is JSON
+        out = prompts.parse_round(txt, MATCHES)
+        self.assertEqual(out[0]["advances"], "South Africa")
+
+    def test_non_json_object_raises_valueerror(self):
+        with self.assertRaises(ValueError):
+            prompts.parse_round('"just a string"', MATCHES)
+
 
 class TestBracket(unittest.TestCase):
     def test_prompt_lists_matchups(self):
@@ -61,6 +72,18 @@ class TestBracket(unittest.TestCase):
         self.assertEqual(r["QF"], ["Canada"])
         self.assertEqual(r["champion"], "Canada")
         self.assertEqual(r["third"], "")
+
+    def test_parse_double_encoded(self):
+        inner = '{"R16":["Canada"],"QF":[],"SF":[],"F":[],"champion":"Canada","third":""}'
+        txt = __import__("json").dumps(inner)
+        r = prompts.parse_bracket(txt)
+        self.assertEqual(r["R16"], ["Canada"])
+        self.assertEqual(r["champion"], "Canada")
+
+    def test_parse_non_object_raises(self):
+        # a bare JSON array is not a valid bracket — raise cleanly, don't crash
+        with self.assertRaises(ValueError):
+            prompts.parse_bracket('["Canada","USA"]')
 
 
 if __name__ == "__main__":
