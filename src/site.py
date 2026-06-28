@@ -369,6 +369,14 @@ TEMPLATE = r"""<!doctype html>
       if(slot.indexOf('R32-')===0){ var m=r32ById[slot]; return m?[m.home,m.away]:[null,null]; }
       var fe=slots[slot]||[]; return [winnerOf(fe[0]), winnerOf(fe[1])];
     }
+    /* How deep the model carried a team (champion=5 .. R16=1, unmentioned=0). */
+    function depth(team){ if(!team) return -1; var n=norm(team);
+      if(n===champ) return 5;
+      if((listByStage.F||[]).indexOf(n)>=0) return 4;
+      if((listByStage.SF||[]).indexOf(n)>=0) return 3;
+      if((listByStage.QF||[]).indexOf(n)>=0) return 2;
+      if((listByStage.R16||[]).indexOf(n)>=0) return 1;
+      return 0; }
     function winnerOf(slot){
       if(slot in cache) return cache[slot];
       cache[slot]=null;  // guard against cycles
@@ -377,6 +385,12 @@ TEMPLATE = r"""<!doctype html>
       else { var list=listByStage[stage]||[];
         if(t[0]&&list.indexOf(norm(t[0]))>=0) w=t[0];
         else if(t[1]&&list.indexOf(norm(t[1]))>=0) w=t[1]; }
+      /* Fallback: the model's stage picks don't name a winner for this slot — its
+         set-based picks (made before the real draw) don't partition the bracket
+         one-per-region. Keep the tree fully connected (no TBD gaps) by advancing
+         whichever feeder team the model carried deepest; ties break to the top feeder. */
+      if(!w){ if(t[0]&&t[1]) w=(depth(t[1])>depth(t[0]))?t[1]:t[0];
+              else w=t[0]||t[1]||null; }
       cache[slot]=w; return w;
     }
     function advanced(team,stage){ if(!team) return false;
