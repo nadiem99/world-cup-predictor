@@ -303,30 +303,20 @@ TEMPLATE = r"""<!doctype html>
     return h+'</table></div>';
   }
 
-  /* ---------- Bracket tree ---------- */
-  function bracketView(){
-    var el=document.getElementById('br');
+  /* ---------- Actual bracket tree (the real tournament) ---------- */
+  function actualBracketTree(){
     var cols=D.round_order.filter(function(rl){ return rl!=='TP' && D.fixtures[rl]; });
-    var html='';
-    if(!cols.length){ html='<div class="empty">No fixtures entered yet. Add them in data/fixtures/&lt;ROUND&gt;.json.</div>'; }
-    else{
-      html='<div class="bracket">';
-      cols.forEach(function(rl){
-        html+='<div class="col"><h3>'+esc(lname(rl))+'</h3><div class="col-body">';
-        D.fixtures[rl].forEach(function(m){ html+=matchCard(m,(D.results[rl]||{})[m.id]); });
-        html+='</div></div>';
-      });
-      html+='</div>';
-    }
-    var bp=D.bracket_predictions||[];
-    if(bp.length){
-      var opts=bp.map(function(b){ return '<option value="'+esc(b.slug)+'">'+esc(b.name)+'</option>'; }).join('');
-      html+='<h2 class="section">Compare a one-shot bracket</h2>'+
-        '<select id="brsel">'+opts+'</select><div id="brcmp"></div>';
-    }
-    el.innerHTML=html;
-    var sel=document.getElementById('brsel');
-    if(sel){ sel.onchange=function(){ renderCmp(sel.value); }; renderCmp(sel.value); }
+    if(!cols.length) return '<div class="empty">No fixtures entered yet. Add them in data/fixtures/&lt;ROUND&gt;.json.</div>';
+    var html='<div class="bracket">';
+    cols.forEach(function(rl){
+      html+='<div class="col"><h3>'+esc(lname(rl))+'</h3><div class="col-body">';
+      D.fixtures[rl].forEach(function(m){ html+=matchCard(m,(D.results[rl]||{})[m.id]); });
+      html+='</div></div>';
+    });
+    return html+'</div>';
+  }
+  function bracketView(){
+    document.getElementById('br').innerHTML=actualBracketTree();
   }
   function teamName(t){ return t?esc(t):'<span class="muted">TBD</span>'; }
   function teamLabel(t,win){ return '<span class="tm'+(win?' win':'')+'">'+flagImg(t)+
@@ -342,30 +332,15 @@ TEMPLATE = r"""<!doctype html>
     return '<div class="match"><div class="row">'+teamLabel(m.home,false)+'<span class="go">·</span></div>'+
       '<div class="row">'+teamLabel(m.away,false)+'<span class="go">·</span></div></div>';
   }
-  function renderCmp(slug){
-    var b=(D.bracket_predictions||[]).filter(function(x){return x.slug===slug;})[0];
-    var box=document.getElementById('brcmp'); if(!b){ box.innerHTML=''; return; }
-    var ab=D.actual_bracket||{};
-    function stage(key,label){
-      var actual=(ab[key]||[]).map(norm);
-      var chips=(b.rounds[key]||[]).map(function(t){
-        var hit=actual.indexOf(norm(t))>=0;
-        return '<span class="chip'+(hit?' hit':'')+'">'+flagImg(t)+esc(t)+(hit?' ✓':'')+'</span>';
-      }).join('');
-      return '<div style="margin:10px 0"><div class="muted" style="font-size:.75rem;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">'+label+'</div><div class="chips">'+(chips||'<span class="muted">—</span>')+'</div></div>';
-    }
-    var champHit=ab.champion&&norm(b.rounds.champion)===norm(ab.champion);
-    box.innerHTML='<div class="legend">Green = team actually reached that stage. Points: '+b.points+'.</div>'+
-      stage('R16','Round of 16')+stage('QF','Quarter-finals')+stage('SF','Semi-finals')+stage('F','Finalists')+
-      '<div style="margin-top:8px;display:flex;align-items:center;gap:8px">Champion pick: '+teamInline(b.rounds.champion,champHit?'ok':'')+(champHit?' <span class="ok">✓</span>':'')+'</div>';
-  }
-
-  /* ---------- Predictions (each entrant's one-shot bracket) ---------- */
+  /* ---------- Predictions (each entrant's bracket vs. the actual bracket) ---------- */
   function predictions(){
     var el=document.getElementById('pr');
     var bp=D.bracket_predictions||[];
     if(!bp.length){ el.innerHTML='<div class="empty">No bracket predictions collected yet.</div>'; return; }
-    el.innerHTML='<select id="prmodel"></select><div id="prbody"></div>';
+    el.innerHTML='<select id="prmodel"></select><div id="prbody"></div>'+
+      '<h2 class="section">Actual bracket</h2>'+
+      '<div class="legend" style="margin-bottom:10px">How the real tournament is unfolding — compare it against the picks above.</div>'+
+      actualBracketTree();
     var msel=document.getElementById('prmodel');
     msel.innerHTML=bp.map(function(x){ return '<option value="'+esc(x.slug)+'">'+esc(x.name)+'</option>'; }).join('');
     function render(){
