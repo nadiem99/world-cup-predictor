@@ -1,0 +1,49 @@
+{
+  "model": "meta-llama/llama-4-scout",
+  "slug": "llama-4-scout",
+  "name": "Llama 4 Scout",
+  "collected_at": "2026-06-28T13:20:11.525695+00:00",
+  "rounds": {
+    "R16": [
+      "Germany",
+      "France",
+      "Canada",
+      "Netherlands",
+      "Portugal",
+      "Spain",
+      "United States",
+      "Belgium",
+      "Brazil",
+      "Ivory Coast",
+      "Mexico",
+      "England",
+      "Argentina",
+      "Australia",
+      "Switzerland",
+      "Colombia"
+    ],
+    "QF": [
+      "Germany",
+      "France",
+      "Netherlands",
+      "Portugal",
+      "Brazil",
+      "England",
+      "Argentina",
+      "Colombia"
+    ],
+    "SF": [
+      "France",
+      "Portugal",
+      "Brazil",
+      "Argentina"
+    ],
+    "F": [
+      "France",
+      "Brazil"
+    ],
+    "champion": "France",
+    "third": "Portugal"
+  },
+  "raw": "{\n  \"R16\": [\n    \"Germany\", \"France\", \"Canada\", \"Netherlands\", \"Portugal\", \"Spain\", \"United States\", \"Belgium\", \n    \"Brazil\", \"Ivory Coast\", \"Mexico\", \"England\", \"Argentina\", \"Australia\", \"Switzerland\", \"Colombia\"\n  ],\n  \"QF\": [\n    \"Germany\", \"France\", \"Netherlands\", \"Portugal\", \n    \"Brazil\", \"England\", \"Argentina\", \"Colombia\"\n  ],\n  \"SF\": [\n    \"France\", \"Portugal\", \"Brazil\", \"Argentina\"\n  ],\n  \"F\": [\n    \"France\", \"Brazil\"\n  ],\n  \"champion\": \"France\",\n  \"third\": \"Portugal\"\n}"
+}

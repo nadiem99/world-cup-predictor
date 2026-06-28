@@ -1,0 +1,49 @@
+{
+  "model": "openai/gpt-5",
+  "slug": "gpt-5",
+  "name": "GPT-5",
+  "collected_at": "2026-06-28T13:21:18.200888+00:00",
+  "rounds": {
+    "R16": [
+      "Germany",
+      "France",
+      "Canada",
+      "Netherlands",
+      "Portugal",
+      "Spain",
+      "United States",
+      "Belgium",
+      "Brazil",
+      "Norway",
+      "Mexico",
+      "England",
+      "Argentina",
+      "Australia",
+      "Switzerland",
+      "Colombia"
+    ],
+    "QF": [
+      "France",
+      "Netherlands",
+      "Spain",
+      "United States",
+      "Brazil",
+      "England",
+      "Argentina",
+      "Switzerland"
+    ],
+    "SF": [
+      "France",
+      "Spain",
+      "England",
+      "Argentina"
+    ],
+    "F": [
+      "France",
+      "England"
+    ],
+    "champion": "France",
+    "third": "Spain"
+  },
+  "raw": "{\n  \"R16\": [\"Germany\", \"France\", \"Canada\", \"Netherlands\", \"Portugal\", \"Spain\", \"United States\", \"Belgium\", \"Brazil\", \"Norway\", \"Mexico\", \"England\", \"Argentina\", \"Australia\", \"Switzerland\", \"Colombia\"],\n  \"QF\":  [\"France\", \"Netherlands\", \"Spain\", \"United States\", \"Brazil\", \"England\", \"Argentina\", \"Switzerland\"],\n  \"SF\":  [\"France\", \"Spain\", \"England\", \"Argentina\"],\n  \"F\":   [\"France\", \"England\"],\n  \"champion\": \"France\",\n  \"third\": \"Spain\"\n}"
+}

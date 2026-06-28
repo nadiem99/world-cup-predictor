@@ -1,0 +1,49 @@
+{
+  "model": "google/gemini-2.5-flash",
+  "slug": "gemini-2.5-flash",
+  "name": "Gemini 2.5 Flash",
+  "collected_at": "2026-06-28T13:19:58.645925+00:00",
+  "rounds": {
+    "R16": [
+      "Germany",
+      "France",
+      "Canada",
+      "Netherlands",
+      "Portugal",
+      "Spain",
+      "United States",
+      "Belgium",
+      "Brazil",
+      "Norway",
+      "Mexico",
+      "England",
+      "Argentina",
+      "Australia",
+      "Switzerland",
+      "Colombia"
+    ],
+    "QF": [
+      "Germany",
+      "Netherlands",
+      "Spain",
+      "Belgium",
+      "Brazil",
+      "England",
+      "Argentina",
+      "Colombia"
+    ],
+    "SF": [
+      "Germany",
+      "Belgium",
+      "Brazil",
+      "Argentina"
+    ],
+    "F": [
+      "Germany",
+      "Brazil"
+    ],
+    "champion": "Brazil",
+    "third": "Argentina"
+  },
+  "raw": "{\n  \"R16\": [\n    \"Germany\",\n    \"France\",\n    \"Canada\",\n    \"Netherlands\",\n    \"Portugal\",\n    \"Spain\",\n    \"United States\",\n    \"Belgium\",\n    \"Brazil\",\n    \"Norway\",\n    \"Mexico\",\n    \"England\",\n    \"Argentina\",\n    \"Australia\",\n    \"Switzerland\",\n    \"Colombia\"\n  ],\n  \"QF\": [\n    \"Germany\",\n    \"Netherlands\",\n    \"Spain\",\n    \"Belgium\",\n    \"Brazil\",\n    \"England\",\n    \"Argentina\",\n    \"Colombia\"\n  ],\n  \"SF\": [\n    \"Germany\",\n    \"Belgium\",\n    \"Brazil\",\n    \"Argentina\"\n  ],\n  \"F\": [\n    \"Germany\",\n    \"Brazil\"\n  ],\n  \"champion\": \"Brazil\",\n  \"third\": \"Argentina\"\n}"
+}

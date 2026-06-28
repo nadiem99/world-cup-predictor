@@ -1,0 +1,49 @@
+{
+  "model": "mistralai/mistral-medium-3.1",
+  "slug": "mistral-medium-3.1",
+  "name": "Mistral Medium 3.1",
+  "collected_at": "2026-06-28T13:20:13.995592+00:00",
+  "rounds": {
+    "R16": [
+      "Germany",
+      "France",
+      "Canada",
+      "Netherlands",
+      "Portugal",
+      "Spain",
+      "United States",
+      "Senegal",
+      "Brazil",
+      "Ivory Coast",
+      "Mexico",
+      "England",
+      "Argentina",
+      "Australia",
+      "Switzerland",
+      "Colombia"
+    ],
+    "QF": [
+      "Germany",
+      "Netherlands",
+      "Portugal",
+      "Senegal",
+      "Brazil",
+      "England",
+      "Argentina",
+      "Colombia"
+    ],
+    "SF": [
+      "Germany",
+      "Portugal",
+      "Brazil",
+      "Argentina"
+    ],
+    "F": [
+      "Brazil",
+      "Germany"
+    ],
+    "champion": "Brazil",
+    "third": "Argentina"
+  },
+  "raw": "{\n  \"R16\": [\n    \"Germany\",\n    \"France\",\n    \"Canada\",\n    \"Netherlands\",\n    \"Portugal\",\n    \"Spain\",\n    \"United States\",\n    \"Senegal\",\n    \"Brazil\",\n    \"Ivory Coast\",\n    \"Mexico\",\n    \"England\",\n    \"Argentina\",\n    \"Australia\",\n    \"Switzerland\",\n    \"Colombia\"\n  ],\n  \"QF\": [\n    \"Germany\",\n    \"Netherlands\",\n    \"Portugal\",\n    \"Senegal\",\n    \"Brazil\",\n    \"England\",\n    \"Argentina\",\n    \"Colombia\"\n  ],\n  \"SF\": [\n    \"Germany\",\n    \"Portugal\",\n    \"Brazil\",\n    \"Argentina\"\n  ],\n  \"F\": [\n    \"Brazil\",\n    \"Germany\"\n  ],\n  \"champion\": \"Brazil\",\n  \"third\": \"Argentina\"\n}"
+}

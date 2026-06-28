@@ -1,0 +1,49 @@
+{
+  "model": "meta-llama/llama-4-maverick",
+  "slug": "llama-4-maverick",
+  "name": "Llama 4 Maverick",
+  "collected_at": "2026-06-28T13:20:12.483317+00:00",
+  "rounds": {
+    "R16": [
+      "Germany",
+      "France",
+      "Canada",
+      "Netherlands",
+      "Portugal",
+      "Spain",
+      "United States",
+      "Belgium",
+      "Brazil",
+      "Ivory Coast",
+      "Mexico",
+      "England",
+      "Argentina",
+      "Australia",
+      "Switzerland",
+      "Colombia"
+    ],
+    "QF": [
+      "France",
+      "Canada",
+      "Portugal",
+      "Spain",
+      "Brazil",
+      "Mexico",
+      "Argentina",
+      "Colombia"
+    ],
+    "SF": [
+      "France",
+      "Portugal",
+      "Brazil",
+      "Argentina"
+    ],
+    "F": [
+      "France",
+      "Argentina"
+    ],
+    "champion": "Argentina",
+    "third": "Brazil"
+  },
+  "raw": "{\n  \"R16\": [\"Germany\", \"France\", \"Canada\", \"Netherlands\", \"Portugal\", \"Spain\", \"United States\", \"Belgium\", \"Brazil\", \"Ivory Coast\", \"Mexico\", \"England\", \"Argentina\", \"Australia\", \"Switzerland\", \"Colombia\"],\n  \"QF\":  [\"France\", \"Canada\", \"Portugal\", \"Spain\", \"Brazil\", \"Mexico\", \"Argentina\", \"Colombia\"],\n  \"SF\":  [\"France\", \"Portugal\", \"Brazil\", \"Argentina\"],\n  \"F\":   [\"France\", \"Argentina\"],\n  \"champion\": \"Argentina\",\n  \"third\": \"Brazil\"\n}"
+}

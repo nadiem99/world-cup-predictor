@@ -1,0 +1,49 @@
+{
+  "model": "deepseek/deepseek-r1",
+  "slug": "deepseek-r1",
+  "name": "DeepSeek R1",
+  "collected_at": "2026-06-28T13:22:00.083391+00:00",
+  "rounds": {
+    "R16": [
+      "Germany",
+      "France",
+      "Canada",
+      "Netherlands",
+      "Croatia",
+      "Spain",
+      "United States",
+      "Belgium",
+      "Brazil",
+      "Norway",
+      "Mexico",
+      "England",
+      "Argentina",
+      "Australia",
+      "Switzerland",
+      "Colombia"
+    ],
+    "QF": [
+      "France",
+      "Netherlands",
+      "Spain",
+      "Belgium",
+      "Brazil",
+      "England",
+      "Argentina",
+      "Colombia"
+    ],
+    "SF": [
+      "France",
+      "Spain",
+      "Brazil",
+      "Argentina"
+    ],
+    "F": [
+      "France",
+      "Argentina"
+    ],
+    "champion": "Argentina",
+    "third": "Brazil"
+  },
+  "raw": "{\n  \"R16\": [\"Germany\", \"France\", \"Canada\", \"Netherlands\", \"Croatia\", \"Spain\", \"United States\", \"Belgium\", \"Brazil\", \"Norway\", \"Mexico\", \"England\", \"Argentina\", \"Australia\", \"Switzerland\", \"Colombia\"],\n  \"QF\": [\"France\", \"Netherlands\", \"Spain\", \"Belgium\", \"Brazil\", \"England\", \"Argentina\", \"Colombia\"],\n  \"SF\": [\"France\", \"Spain\", \"Brazil\", \"Argentina\"],\n  \"F\": [\"France\", \"Argentina\"],\n  \"champion\": \"Argentina\",\n  \"third\": \"Brazil\"\n}"
+}

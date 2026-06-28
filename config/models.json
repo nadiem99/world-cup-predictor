@@ -20,7 +20,7 @@
     {"slug": "deepseek-r1",       "name": "DeepSeek R1",       "provider": "DeepSeek",  "id": "deepseek/deepseek-r1",             "enabled": true},
 
     {"slug": "qwen3-max",         "name": "Qwen3 Max",         "provider": "Qwen",      "id": "qwen/qwen3-max",                   "enabled": true},
-    {"slug": "qwen3-235b",        "name": "Qwen3 235B",        "provider": "Qwen",      "id": "qwen/qwen3-235b-a22b",             "enabled": true},
+    {"slug": "qwen3-235b",        "name": "Qwen3 235B",        "provider": "Qwen",      "id": "qwen/qwen3-235b-a22b",             "enabled": false, "_note": "no valid bracket response on 2026-06-28; excluded"},
 
     {"slug": "llama-4-maverick",  "name": "Llama 4 Maverick",  "provider": "Meta",      "id": "meta-llama/llama-4-maverick",      "enabled": true},
     {"slug": "llama-4-scout",     "name": "Llama 4 Scout",     "provider": "Meta",      "id": "meta-llama/llama-4-scout",         "enabled": true},
@@ -29,7 +29,7 @@
     {"slug": "mistral-medium-3.1","name": "Mistral Medium 3.1","provider": "Mistral",   "id": "mistralai/mistral-medium-3.1",     "enabled": true},
 
     {"slug": "kimi-k2",           "name": "Kimi K2",           "provider": "Moonshot",  "id": "moonshotai/kimi-k2",               "enabled": true},
-    {"slug": "glm-4.6",           "name": "GLM-4.6",           "provider": "Zhipu",     "id": "z-ai/glm-4.6",                     "enabled": true},
+    {"slug": "glm-4.6",           "name": "GLM-4.6",           "provider": "Zhipu",     "id": "z-ai/glm-4.6",                     "enabled": false, "_note": "empty/truncated response on 2026-06-28; excluded"},
     {"slug": "minimax-m2",        "name": "MiniMax M2",        "provider": "MiniMax",   "id": "minimax/minimax-m2",               "enabled": true},
     {"slug": "nova-pro",          "name": "Nova Pro",          "provider": "Amazon",    "id": "amazon/nova-pro-v1",               "enabled": true},
     {"slug": "command-a",         "name": "Command A",         "provider": "Cohere",    "id": "cohere/command-a",                 "enabled": true}

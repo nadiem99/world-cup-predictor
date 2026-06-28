@@ -1,0 +1,49 @@
+{
+  "model": "google/gemini-3.1-pro-preview",
+  "slug": "gemini-3.1-pro",
+  "name": "Gemini 3.1 Pro",
+  "collected_at": "2026-06-28T13:20:07.139275+00:00",
+  "rounds": {
+    "R16": [
+      "Germany",
+      "France",
+      "Canada",
+      "Netherlands",
+      "Portugal",
+      "Spain",
+      "United States",
+      "Belgium",
+      "Brazil",
+      "Norway",
+      "Ecuador",
+      "England",
+      "Argentina",
+      "Egypt",
+      "Switzerland",
+      "Colombia"
+    ],
+    "QF": [
+      "France",
+      "Netherlands",
+      "Spain",
+      "Belgium",
+      "Brazil",
+      "England",
+      "Argentina",
+      "Colombia"
+    ],
+    "SF": [
+      "France",
+      "Spain",
+      "Brazil",
+      "Argentina"
+    ],
+    "F": [
+      "France",
+      "Argentina"
+    ],
+    "champion": "Argentina",
+    "third": "Brazil"
+  },
+  "raw": "{\n  \"R16\": [\n    \"Germany\",\n    \"France\",\n    \"Canada\",\n    \"Netherlands\",\n    \"Portugal\",\n    \"Spain\",\n    \"United States\",\n    \"Belgium\",\n    \"Brazil\",\n    \"Norway\",\n    \"Ecuador\",\n    \"England\",\n    \"Argentina\",\n    \"Egypt\",\n    \"Switzerland\",\n    \"Colombia\"\n  ],\n  \"QF\": [\n    \"France\",\n    \"Netherlands\",\n    \"Spain\",\n    \"Belgium\",\n    \"Brazil\",\n    \"England\",\n    \"Argentina\",\n    \"Colombia\"\n  ],\n  \"SF\": [\n    \"France\",\n    \"Spain\",\n    \"Brazil\",\n    \"Argentina\"\n  ],\n  \"F\": [\n    \"France\",\n    \"Argentina\"\n  ],\n  \"champion\": \"Argentina\",\n  \"third\": \"Brazil\"\n}"
+}

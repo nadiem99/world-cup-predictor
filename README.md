@@ -1,33 +1,29 @@
 # 🏆 World Cup 2026 — AI Models vs. Nadiem
 
 A fun benchmark: how well do AI models (and a human, Nadiem) predict the **2026 FIFA World Cup
-knockout rounds**? Each round, every model gets the real fixtures and predicts the
-score + who advances. Points are tallied into a leaderboard.
+knockout stage**? Before the Round of 32, everyone calls the **entire bracket once** — all the
+way to the champion. That single prediction is locked in; as the real tournament plays out,
+each bracket is scored against what happened. One prediction, one leaderboard.
 
-- **Round of 32 kicks off Sunday, June 28, 2026** — predictions must be collected before then.
+- **Round of 32 kicks off Sunday, June 28, 2026** — brackets must be collected before then.
 - Models are queried through **OpenRouter** (one API key reaches Claude, OpenAI, Gemini,
   Qwen, and open-source models).
 - **Zero dependencies** — pure Python standard library (3.9+). Nothing to `pip install`.
 
-## Two contests at once
-
-1. **Per-round (main):** before each round, each model predicts only that round's real
-   fixtures. Fair (early mistakes don't compound) and the primary leaderboard.
-2. **One-shot bracket (bonus):** collected once before R32 — each model calls the whole
-   bracket to the champion. A separate "called-it-from-the-start" leaderboard.
-
 ## Scoring
 
-**Per round** (best of the two — they do *not* stack, so a match is worth at most 3):
-| Outcome | Points |
+Points for every team you correctly predict to **reach a stage**, weighted by depth:
+
+| Reaches | Points (per correct team) |
 |---|---|
-| Exact regulation/extra-time scoreline (penalty shootout ignored) | **3** |
-| else correct advancing team only | **1** |
+| Round of 16 | **+1** |
+| Quarter-finals | **+2** |
+| Semi-finals | **+3** |
+| Final | **+5** |
+| Champion | **+10** |
+| Third place | **+3** |
 
-**Bracket bonus:** +1/+2/+3/+5 per team correctly predicted to reach the
-R16/QF/SF/Final, champion **+10**, third place **+3**.
-
-Tune any of these constants at the top of [`src/score.py`](src/score.py).
+Highest total wins. Tune any of these constants at the top of [`src/score.py`](src/score.py).
 
 ## Setup (once)
 
@@ -40,41 +36,47 @@ python -m src.models check    # verify the model ids in config/models.json are l
 `models check` lists any ids that need fixing and suggests valid alternatives.
 Edit [`config/models.json`](config/models.json) to add/remove models or set `"enabled": false`.
 
-Curious about cost? `python -m src.collect estimate all` prints an offline token/call
+Curious about cost? `python -m src.collect estimate` prints an offline token/call
 ballpark — no key needed.
 
-## Workflow each round
+## Workflow
 
-1. **Enter the fixtures** for the round in `data/fixtures/<ROUND>.json`
-   (`R32`, `R16`, `QF`, `SF`, `TP`, `F`). Blank templates for every round already exist
-   (regenerate/add with `python -m src.scaffold all`); the opening R32 match is pre-filled.
-2. **Collect predictions — before kickoff:**
+**Once, before the Round of 32 kicks off:**
+
+1. **Fill the R32 teams** in `data/fixtures/R32.json` (the 32 qualifiers in their official
+   bracket slots). The bracket prompt is built from these matchups.
+2. **Collect the one-shot brackets:**
    ```bash
-   python -m src.collect round R32          # all models in parallel (--workers N to tune)
-   python -m src.collect me round R32       # enter your own picks (interactive)
+   python -m src.collect bracket            # all models in parallel (--workers N to tune)
+   python -m src.collect me                 # enter your own bracket (interactive)
+   make enter                               # …or a nicer point-and-click version (private, local-only)
    ```
-   (Do `python -m src.collect bracket` and `... me bracket` once, before R32, for the bonus.)
-3. **Enter results** as matches finish in `data/results/<ROUND>.json`.
+
+**Then, as the tournament plays out:**
+
+3. **Enter results** as matches finish in `data/results/<ROUND>.json` (`R32`, `R16`, `QF`,
+   `SF`, `TP`, `F`). Blank templates exist for every round (`python -m src.scaffold all`).
+   This is how brackets get scored and how the bracket tree fills in.
 4. **Score & build the site:**
    ```bash
-   python -m src.score    # prints tables + writes data/scores.json
+   python -m src.score    # prints the leaderboard + writes data/scores.json
    python -m src.site     # writes output/index.html — open it in a browser
    ```
-   Or just run `make site`. The site has four tabs: **Leaderboard** (sortable, with
-   per-round sparklines), **Bracket** (connected tree), a browsable **Predictions** archive
-   (every model's picks), and **About**.
+   Or just run `make site`. The site has four tabs: **Leaderboard** (the bracket standings),
+   **Bracket** (connected tree of the real tournament, with flags), **Predictions** (each
+   entrant's bracket vs. reality), and **About**.
 
 ## Layout
 
 ```
 config/models.json        model roster (OpenRouter ids, display names, enabled flags)
-data/fixtures/<R>.json     the real fixtures you enter per round
-data/results/<R>.json      the real outcomes you enter per round
-data/bracket.json          knockout wiring (which slots feed which) for the bracket tree
-data/predictions/<R>/*.json  one file per model (+ Nadiem) per round
-data/predictions/bracket/*.json  one-shot full-bracket predictions
-output/index.html          the generated website (leaderboard · bracket · predictions · about)
-src/      collect.py · score.py · site.py · scaffold.py · models.py · prompts.py · common.py
+data/fixtures/<R>.json     the real fixtures (R32 = the qualifiers you slot in)
+data/results/<R>.json      the real outcomes you enter as rounds finish
+data/bracket.json          knockout wiring (which slots feed which) for scoring + the tree
+data/predictions/bracket/*.json  one-shot full-bracket predictions (one per model + Nadiem)
+output/index.html          the generated public website (leaderboard · bracket · predictions · about)
+local/enter.html           PRIVATE point-and-click bracket entry (git-ignored, never deployed)
+src/      collect.py · score.py · site.py · enter.py · scaffold.py · models.py · prompts.py · common.py · flags.py
 tests/    stdlib unittest suite · Makefile · docs/DEPLOY.md
 ```
 

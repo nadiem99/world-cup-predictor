@@ -24,58 +24,6 @@ def _as_json(text):
     return data
 
 
-def round_prompt(round_label, matches):
-    fixtures = "\n".join(
-        '  - id "%s": %s vs %s' % (m["id"], m["home"], m["away"]) for m in matches
-    )
-    schema = (
-        "{\n"
-        '  "predictions": [\n'
-        '    {"id": "<match id>", "home_goals": <int>, "away_goals": <int>, '
-        '"advances": "<team that goes through>"}\n'
-        "  ]\n"
-        "}"
-    )
-    return (
-        "Predict every match in the %s of the 2026 FIFA World Cup.\n\n"
-        "Fixtures:\n%s\n\n"
-        "For each match give the score at the end of regulation + extra time "
-        "(do NOT add penalty-shootout goals to the score), and name the team that advances "
-        "(if your score is a draw, name the team you think wins the shootout). "
-        "Use the exact team names shown above.\n\n"
-        "Respond with ONLY this JSON shape:\n%s" % (round_label, fixtures, schema)
-    )
-
-
-def parse_round(text, matches):
-    data = _as_json(text)
-    if isinstance(data, dict):
-        preds = data.get("predictions", [])
-    elif isinstance(data, list):
-        preds = data
-    else:
-        raise ValueError("round response was not valid JSON")
-    valid_ids = {m["id"] for m in matches}
-    name_by_id = {m["id"]: (m["home"], m["away"]) for m in matches}
-    out = []
-    seen = set()
-    for p in preds:
-        mid = str(p.get("id"))
-        if mid not in valid_ids or mid in seen:
-            continue
-        seen.add(mid)
-        home, away = name_by_id[mid]
-        out.append({
-            "id": mid,
-            "home": home,
-            "away": away,
-            "home_goals": int(p["home_goals"]),
-            "away_goals": int(p["away_goals"]),
-            "advances": str(p.get("advances", "")).strip(),
-        })
-    return out
-
-
 def bracket_prompt(r32_matches):
     fixtures = "\n".join(
         "  - %s vs %s" % (m["home"], m["away"]) for m in r32_matches

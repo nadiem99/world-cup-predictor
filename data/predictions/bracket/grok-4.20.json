@@ -1,0 +1,49 @@
+{
+  "model": "x-ai/grok-4.20",
+  "slug": "grok-4.20",
+  "name": "Grok 4.20",
+  "collected_at": "2026-06-28T13:19:59.151937+00:00",
+  "rounds": {
+    "R16": [
+      "Germany",
+      "France",
+      "South Africa",
+      "Netherlands",
+      "Portugal",
+      "Spain",
+      "United States",
+      "Belgium",
+      "Brazil",
+      "Ivory Coast",
+      "Mexico",
+      "England",
+      "Argentina",
+      "Egypt",
+      "Switzerland",
+      "Colombia"
+    ],
+    "QF": [
+      "Germany",
+      "France",
+      "Netherlands",
+      "Spain",
+      "Brazil",
+      "England",
+      "Argentina",
+      "Colombia"
+    ],
+    "SF": [
+      "Germany",
+      "Spain",
+      "Brazil",
+      "Argentina"
+    ],
+    "F": [
+      "Germany",
+      "Argentina"
+    ],
+    "champion": "Argentina",
+    "third": "Brazil"
+  },
+  "raw": "{\n  \"R16\": [\"Germany\", \"France\", \"South Africa\", \"Netherlands\", \"Portugal\", \"Spain\", \"United States\", \"Belgium\", \"Brazil\", \"Ivory Coast\", \"Mexico\", \"England\", \"Argentina\", \"Egypt\", \"Switzerland\", \"Colombia\"],\n  \"QF\": [\"Germany\", \"France\", \"Netherlands\", \"Spain\", \"Brazil\", \"England\", \"Argentina\", \"Colombia\"],\n  \"SF\": [\"Germany\", \"Spain\", \"Brazil\", \"Argentina\"],\n  \"F\": [\"Germany\", \"Argentina\"],\n  \"champion\": \"Argentina\",\n  \"third\": \"Brazil\"\n}"
+}

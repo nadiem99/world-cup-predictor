@@ -1,0 +1,49 @@
+{
+  "model": "moonshotai/kimi-k2",
+  "slug": "kimi-k2",
+  "name": "Kimi K2",
+  "collected_at": "2026-06-28T13:20:18.186396+00:00",
+  "rounds": {
+    "R16": [
+      "Germany",
+      "France",
+      "Canada",
+      "Netherlands",
+      "Portugal",
+      "Spain",
+      "United States",
+      "Belgium",
+      "Brazil",
+      "Ivory Coast",
+      "Mexico",
+      "England",
+      "Argentina",
+      "Australia",
+      "Switzerland",
+      "Colombia"
+    ],
+    "QF": [
+      "Germany",
+      "France",
+      "Netherlands",
+      "Spain",
+      "Brazil",
+      "England",
+      "Argentina",
+      "Colombia"
+    ],
+    "SF": [
+      "France",
+      "Spain",
+      "Brazil",
+      "Argentina"
+    ],
+    "F": [
+      "Spain",
+      "Brazil"
+    ],
+    "champion": "Brazil",
+    "third": "France"
+  },
+  "raw": "{\n  \"R16\": [\"Germany\", \"France\", \"Canada\", \"Netherlands\", \"Portugal\", \"Spain\", \"United States\", \"Belgium\", \"Brazil\", \"Ivory Coast\", \"Mexico\", \"England\", \"Argentina\", \"Australia\", \"Switzerland\", \"Colombia\"],\n  \"QF\": [\"Germany\", \"France\", \"Netherlands\", \"Spain\", \"Brazil\", \"England\", \"Argentina\", \"Colombia\"],\n  \"SF\": [\"France\", \"Spain\", \"Brazil\", \"Argentina\"],\n  \"F\": [\"Spain\", \"Brazil\"],\n  \"champion\": \"Brazil\",\n  \"third\": \"France\"\n}"
+}

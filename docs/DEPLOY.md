@@ -27,10 +27,10 @@ No build dependencies are installed — the tool is pure standard library.
 ## How updates reach the public site
 
 The published leaderboard reflects whatever is committed under `data/` — the fixtures,
-results, and predictions. The typical loop during the tournament:
+results, and one-shot bracket predictions. The typical loop:
 
-1. Collect predictions before a round: `python -m src.collect round <R>` (and `me round <R>`).
-2. Enter results as matches finish in `data/results/<R>.json`.
+1. Once, before R32: collect the brackets (`python -m src.collect bracket`, `... me`).
+2. Enter results as matches finish in `data/results/<R>.json` — this scores the brackets.
 3. Commit and push. The workflow rebuilds and redeploys automatically.
 
 > Note: `output/` and `data/scores.json` are git-ignored — they are generated artifacts,

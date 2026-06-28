@@ -1,0 +1,49 @@
+{
+  "model": "amazon/nova-pro-v1",
+  "slug": "nova-pro",
+  "name": "Nova Pro",
+  "collected_at": "2026-06-28T13:20:14.911662+00:00",
+  "rounds": {
+    "R16": [
+      "Germany",
+      "France",
+      "South Africa",
+      "Netherlands",
+      "Portugal",
+      "Spain",
+      "United States",
+      "Belgium",
+      "Brazil",
+      "Ivory Coast",
+      "Mexico",
+      "England",
+      "Argentina",
+      "Australia",
+      "Switzerland",
+      "Colombia"
+    ],
+    "QF": [
+      "Germany",
+      "France",
+      "Netherlands",
+      "Spain",
+      "United States",
+      "Belgium",
+      "Brazil",
+      "England"
+    ],
+    "SF": [
+      "Germany",
+      "Netherlands",
+      "United States",
+      "Brazil"
+    ],
+    "F": [
+      "Germany",
+      "Brazil"
+    ],
+    "champion": "Germany",
+    "third": "United States"
+  },
+  "raw": "{\n  \"R16\": [\"Germany\", \"France\", \"South Africa\", \"Netherlands\", \"Portugal\", \"Spain\", \"United States\", \"Belgium\", \"Brazil\", \"Ivory Coast\", \"Mexico\", \"England\", \"Argentina\", \"Australia\", \"Switzerland\", \"Colombia\"],\n  \"QF\": [\"Germany\", \"France\", \"Netherlands\", \"Spain\", \"United States\", \"Belgium\", \"Brazil\", \"England\"],\n  \"SF\": [\"Germany\", \"Netherlands\", \"United States\", \"Brazil\"],\n  \"F\": [\"Germany\", \"Brazil\"],\n  \"champion\": \"Germany\",\n  \"third\": \"United States\"\n}"
+}

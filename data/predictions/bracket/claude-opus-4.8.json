@@ -1,0 +1,49 @@
+{
+  "model": "anthropic/claude-opus-4.8",
+  "slug": "claude-opus-4.8",
+  "name": "Claude Opus 4.8",
+  "collected_at": "2026-06-28T13:19:58.304733+00:00",
+  "rounds": {
+    "R16": [
+      "Germany",
+      "France",
+      "Canada",
+      "Netherlands",
+      "Portugal",
+      "Spain",
+      "United States",
+      "Belgium",
+      "Brazil",
+      "Norway",
+      "Mexico",
+      "England",
+      "Argentina",
+      "Egypt",
+      "Switzerland",
+      "Colombia"
+    ],
+    "QF": [
+      "France",
+      "Netherlands",
+      "Spain",
+      "Brazil",
+      "England",
+      "Argentina",
+      "Portugal",
+      "Belgium"
+    ],
+    "SF": [
+      "France",
+      "Spain",
+      "Brazil",
+      "Argentina"
+    ],
+    "F": [
+      "Spain",
+      "Argentina"
+    ],
+    "champion": "Argentina",
+    "third": "France"
+  },
+  "raw": "{\n  \"R16\": [\"Germany\", \"France\", \"Canada\", \"Netherlands\", \"Portugal\", \"Spain\", \"United States\", \"Belgium\", \"Brazil\", \"Norway\", \"Mexico\", \"England\", \"Argentina\", \"Egypt\", \"Switzerland\", \"Colombia\"],\n  \"QF\": [\"France\", \"Netherlands\", \"Spain\", \"Brazil\", \"England\", \"Argentina\", \"Portugal\", \"Belgium\"],\n  \"SF\": [\"France\", \"Spain\", \"Brazil\", \"Argentina\"],\n  \"F\": [\"Spain\", \"Argentina\"],\n  \"champion\": \"Argentina\",\n  \"third\": \"France\"\n}"
+}

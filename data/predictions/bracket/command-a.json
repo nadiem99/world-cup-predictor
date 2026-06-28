@@ -1,0 +1,49 @@
+{
+  "model": "cohere/command-a",
+  "slug": "command-a",
+  "name": "Command A",
+  "collected_at": "2026-06-28T13:20:16.925672+00:00",
+  "rounds": {
+    "R16": [
+      "Germany",
+      "France",
+      "Canada",
+      "Netherlands",
+      "Portugal",
+      "Spain",
+      "United States",
+      "Belgium",
+      "Brazil",
+      "Ivory Coast",
+      "Mexico",
+      "England",
+      "Argentina",
+      "Australia",
+      "Switzerland",
+      "Colombia"
+    ],
+    "QF": [
+      "Germany",
+      "France",
+      "Canada",
+      "Netherlands",
+      "Portugal",
+      "Spain",
+      "United States",
+      "Brazil"
+    ],
+    "SF": [
+      "Germany",
+      "France",
+      "Portugal",
+      "Brazil"
+    ],
+    "F": [
+      "France",
+      "Brazil"
+    ],
+    "champion": "Brazil",
+    "third": "Germany"
+  },
+  "raw": "{\n  \"R16\": [\n    \"Germany\",\n    \"France\",\n    \"Canada\",\n    \"Netherlands\",\n    \"Portugal\",\n    \"Spain\",\n    \"United States\",\n    \"Belgium\",\n    \"Brazil\",\n    \"Ivory Coast\",\n    \"Mexico\",\n    \"England\",\n    \"Argentina\",\n    \"Australia\",\n    \"Switzerland\",\n    \"Colombia\"\n  ],\n  \"QF\": [\n    \"Germany\",\n    \"France\",\n    \"Canada\",\n    \"Netherlands\",\n    \"Portugal\",\n    \"Spain\",\n    \"United States\",\n    \"Brazil\"\n  ],\n  \"SF\": [\n    \"Germany\",\n    \"France\",\n    \"Portugal\",\n    \"Brazil\"\n  ],\n  \"F\": [\n    \"France\",\n    \"Brazil\"\n  ],\n  \"champion\": \"Brazil\",\n  \"third\": \"Germany\"\n}"
+}

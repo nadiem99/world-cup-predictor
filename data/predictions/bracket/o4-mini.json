@@ -1,0 +1,49 @@
+{
+  "model": "openai/o4-mini",
+  "slug": "o4-mini",
+  "name": "o4-mini",
+  "collected_at": "2026-06-28T13:20:03.444652+00:00",
+  "rounds": {
+    "R16": [
+      "Germany",
+      "France",
+      "Canada",
+      "Netherlands",
+      "Portugal",
+      "Spain",
+      "United States",
+      "Belgium",
+      "Brazil",
+      "Ivory Coast",
+      "Mexico",
+      "England",
+      "Argentina",
+      "Australia",
+      "Switzerland",
+      "Colombia"
+    ],
+    "QF": [
+      "France",
+      "Netherlands",
+      "Spain",
+      "Belgium",
+      "Brazil",
+      "England",
+      "Argentina",
+      "Switzerland"
+    ],
+    "SF": [
+      "France",
+      "Spain",
+      "Brazil",
+      "Argentina"
+    ],
+    "F": [
+      "France",
+      "Argentina"
+    ],
+    "champion": "Argentina",
+    "third": "Brazil"
+  },
+  "raw": "{\"R16\":[\"Germany\",\"France\",\"Canada\",\"Netherlands\",\"Portugal\",\"Spain\",\"United States\",\"Belgium\",\"Brazil\",\"Ivory Coast\",\"Mexico\",\"England\",\"Argentina\",\"Australia\",\"Switzerland\",\"Colombia\"],\"QF\":[\"France\",\"Netherlands\",\"Spain\",\"Belgium\",\"Brazil\",\"England\",\"Argentina\",\"Switzerland\"],\"SF\":[\"France\",\"Spain\",\"Brazil\",\"Argentina\"],\"F\":[\"France\",\"Argentina\"],\"champion\":\"Argentina\",\"third\":\"Brazil\"}"
+}

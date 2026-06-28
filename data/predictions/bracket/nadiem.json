@@ -1,0 +1,49 @@
+{
+  "model": "human",
+  "slug": "nadiem",
+  "name": "Nadiem",
+  "collected_at": "2026-06-28T13:15:07.134Z",
+  "rounds": {
+    "R16": [
+      "Germany",
+      "France",
+      "Canada",
+      "Netherlands",
+      "Croatia",
+      "Spain",
+      "United States",
+      "Senegal",
+      "Brazil",
+      "Norway",
+      "Mexico",
+      "England",
+      "Argentina",
+      "Egypt",
+      "Switzerland",
+      "Colombia"
+    ],
+    "QF": [
+      "France",
+      "Canada",
+      "Spain",
+      "Senegal",
+      "Norway",
+      "England",
+      "Argentina",
+      "Colombia"
+    ],
+    "SF": [
+      "France",
+      "Spain",
+      "England",
+      "Argentina"
+    ],
+    "F": [
+      "France",
+      "England"
+    ],
+    "champion": "England",
+    "third": "Argentina"
+  },
+  "raw": ""
+}

@@ -1,0 +1,49 @@
+{
+  "model": "mistralai/mistral-large",
+  "slug": "mistral-large",
+  "name": "Mistral Large",
+  "collected_at": "2026-06-28T13:20:10.003858+00:00",
+  "rounds": {
+    "R16": [
+      "Germany",
+      "France",
+      "Canada",
+      "Netherlands",
+      "Portugal",
+      "Spain",
+      "United States",
+      "Belgium",
+      "Brazil",
+      "Norway",
+      "Mexico",
+      "England",
+      "Argentina",
+      "Egypt",
+      "Switzerland",
+      "Colombia"
+    ],
+    "QF": [
+      "Germany",
+      "Portugal",
+      "Belgium",
+      "Brazil",
+      "England",
+      "Argentina",
+      "France",
+      "Spain"
+    ],
+    "SF": [
+      "Germany",
+      "Brazil",
+      "Argentina",
+      "France"
+    ],
+    "F": [
+      "Brazil",
+      "Argentina"
+    ],
+    "champion": "Argentina",
+    "third": "France"
+  },
+  "raw": "{\n  \"R16\": [\n    \"Germany\",\n    \"France\",\n    \"Canada\",\n    \"Netherlands\",\n    \"Portugal\",\n    \"Spain\",\n    \"United States\",\n    \"Belgium\",\n    \"Brazil\",\n    \"Norway\",\n    \"Mexico\",\n    \"England\",\n    \"Argentina\",\n    \"Egypt\",\n    \"Switzerland\",\n    \"Colombia\"\n  ],\n  \"QF\": [\n    \"Germany\",\n    \"Portugal\",\n    \"Belgium\",\n    \"Brazil\",\n    \"England\",\n    \"Argentina\",\n    \"France\",\n    \"Spain\"\n  ],\n  \"SF\": [\n    \"Germany\",\n    \"Brazil\",\n    \"Argentina\",\n    \"France\"\n  ],\n  \"F\": [\n    \"Brazil\",\n    \"Argentina\"\n  ],\n  \"champion\": \"Argentina\",\n  \"third\": \"France\"\n}"
+}

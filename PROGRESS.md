@@ -1,10 +1,10 @@
 # World Cup 2026 Predictor — Project Status
 
-_Last updated: 2026-06-25_
+_Last updated: 2026-06-28_
 
 A fun benchmark comparing how well AI models — and **Nadiem** — predict the **2026 FIFA
-World Cup knockout rounds**. Models are queried via OpenRouter, scored against real
-results, and ranked on a static leaderboard site.
+World Cup knockout stage**. Everyone calls the **full bracket once** before the Round of 32;
+brackets are scored against real results and ranked on a single static leaderboard.
 
 - **Repo:** https://github.com/nadiem99/world-cup-predictor
 - **Live site:** https://nadiem99.github.io/world-cup-predictor/ (auto-deploys on every push to `main`)
@@ -13,18 +13,16 @@ results, and ranked on a static leaderboard site.
 - **Group stage finalizes:** ~June 27, 2026
 - **Round of 32 kicks off:** Sunday, June 28, 2026
 - **Final:** July 19, 2026
-- **Hard deadline:** baseline predictions (one-shot bracket + R32) must be collected
-  **before June 28**.
+- **Hard deadline:** the one-shot brackets must be collected **before June 28**.
 
 ## ✅ Decisions locked in
 - **Collection:** OpenRouter API (one key reaches Claude, OpenAI, Gemini, Qwen, and
   open-source models).
-- **Two contests:** (1) **per-round** — models re-predict each round from the real
-  fixtures (the main leaderboard); (2) **one-shot bracket** — a full bracket called once
-  before R32 (bonus board).
-- **Scoring (non-stacking, per match):** exact regulation/ET scoreline = **3**, else
-  correct advancing team = **1**, else 0. Bracket bonus: reach R16 **+1** / QF **+2** /
-  SF **+3** / Final **+5** per correct team, champion **+10**, third **+3**.
+- **Single contest (one-shot bracket):** everyone (models + Nadiem) calls the **full
+  bracket once**, before R32, all the way to the champion. No per-round re-picking — that
+  contest was removed 2026-06-28 to simplify. One leaderboard.
+- **Scoring:** points per team correctly predicted to reach a stage — R16 **+1** / QF
+  **+2** / SF **+3** / Final **+5** — champion **+10**, third **+3**. Highest total wins.
 - **Deliverable:** Python (stdlib only, no deps) + JSON data + a single self-contained
   static HTML site. Human competitor is **Nadiem**.
 
@@ -43,7 +41,10 @@ results, and ranked on a static leaderboard site.
 | Bracket structure | **R32→R16 adjacency confirmed** vs official FIFA 2026 bracket; R32 slots re-laid in official order (match #73–88) with group-position descriptors; `bracket.json` wiring verified | `6c37170` |
 | Site restyle | editorial **serif** theme, warm espresso palette, scroll-reveal + hover animations | `b63c0da` |
 | **Published** | public repo + GitHub Pages **live** (CI + deploy green) | live |
-| Model API wiring | per-model overrides, generalized HTTP-400 fallback, `models ping` smoke test, +8 tests | _this change_ |
+| Model API wiring | per-model overrides, generalized HTTP-400 fallback, `models ping` smoke test, +8 tests | `398d4c1` |
+| Flags + private input | country flag images in the bracket; local-only `enter.html` guided picker (git-ignored, never deployed), `make enter` | _recent_ |
+| R32 finalized | real 32 qualifiers slotted from the official bracket (cross-checked Wikipedia + CBS) | _recent_ |
+| Simplified to one-shot | removed the per-round contest entirely; the **one-shot bracket is the single scored leaderboard** for models + Nadiem (`score`/`collect`/`site`/`enter` trimmed, docs + tests updated) | _this change_ |
 
 ## 📋 Runbook — operational steps
 
@@ -63,20 +64,23 @@ The 32 qualifiers (12 winners, 12 runners-up, 8 best third-placed) are now known
 4. **Verify:** `make site`, open the Bracket tab, confirm real teams land in the right
    slots and the halves look right. Then commit + push (auto-redeploys).
 
-### B. Collect the baseline (before June 28 kickoff)
+### B. Collect the one-shot brackets (before June 28 kickoff)
 0. `.env` has your key. Validate the roster: `python -m src.models check` (ids exist) **and**
    `python -m src.models ping` (each actually responds). Fix or `"enabled": false` any FAIL.
-1. Cost ballpark: `python -m src.collect estimate all`.
-2. **One-shot bracket — must be before R32 kicks off:** `python -m src.collect bracket`.
-3. **Per-round R32:** `python -m src.collect round R32`.
-4. **Nadiem's picks:** `python -m src.collect me bracket` and `python -m src.collect me round R32`.
-5. `make site`, then commit + push. (`data/predictions/` is committed — not gitignored — so
+1. Cost ballpark: `python -m src.collect estimate`.
+2. **Models' brackets — must be before R32 kicks off:** `python -m src.collect bracket`.
+3. **Nadiem's bracket:** either the **private web tool** `make enter` (builds `local/enter.html`,
+   a guided picker that downloads `nadiem.json` ready to drop into `data/predictions/bracket/`)
+   — or the CLI `python -m src.collect me`. The web tool is **local-only** (git-ignored, never
+   deployed); the public site stays read-only for everyone else.
+4. `make site`, then commit + push. (`data/predictions/` is committed — not gitignored — so
    the public leaderboard shows them.)
 
 ### C. Each knockout round during the tournament (R16 → Final)
-1. After the previous round finishes and the matchups are set, enter that round's fixtures
-   (the two teams per match) in `data/fixtures/<R>.json` — `python -m src.scaffold round <R>`
-   makes blank stubs to fill. Then `collect round <R>` + `me round <R>` **before kickoff**.
+No new predictions — the brackets are already locked. Just record what happened so the
+brackets get scored and the tree fills in:
+1. Enter that round's fixtures (the two teams per match) in `data/fixtures/<R>.json` so the
+   bracket tree shows the column — `python -m src.scaffold round <R>` makes blank stubs.
 2. As matches finish, enter outcomes in `data/results/<R>.json` (`home_goals`/`away_goals`/
    `advances`/`decided_by`) using the same match ids. Only matches with goals are scored.
 3. `make site`, commit + push to redeploy. Repeat for R16, QF, SF, TP (third place), F.
@@ -98,9 +102,12 @@ The 32 qualifiers (12 winners, 12 runners-up, 8 best third-placed) are now known
 ## 🔜 Still to do / open questions
 - ✅ **Setup complete** — key + $10 credits added; all **24/24** model ids validated and
   responding live (`models ping` all-green, incl. reasoning models — no overrides needed).
-- **Finalize R32 teams** on ~Jun 27 — Runbook A. ⚠️ Do **not** collect before this: the
-  fixtures still hold `Winner E` / `3rd …` placeholders, not real teams.
-- **Collect the baseline** before the Jun 28 kickoff — Runbook B.
+- ✅ **R32 teams finalized** (2026-06-28) — real 32 teams slotted into `data/fixtures/R32.json`
+  from the official bracket (Wikipedia knockout-stage + CBS Sports, cross-checked; all 12
+  winners + 12 runners-up + 8 best-thirds from groups B/D/E/F/I/J/K/L). Site rebuilt; flags live.
+- ⚠️ **Collect the brackets NOW** — must be before the Jun 28 R32 kickoff — Runbook B
+  (`collect bracket` for the models, `make enter` / `collect me` for Nadiem). This is the
+  urgent remaining step.
 - **Roster size** — all 24 enabled; ~**$2–5** estimated total, so keeping all is fine. The
   lineup mixes Gemini 3.1 Pro with Gemini 2.5 Pro/Flash — modernize if you prefer.
 - _(Optional)_ rotate the API key (it was shared in chat); regenerate at
@@ -110,13 +117,13 @@ The 32 qualifiers (12 winners, 12 runners-up, 8 best third-placed) are now known
 ```bash
 make site                            # score predictions + build output/index.html
 make serve                           # preview at http://localhost:8000
+make enter                           # build + open the PRIVATE local picks tool (not deployed)
 make test                            # run the unit-test suite
 python -m src.models check           # validate model ids exist (needs key)
 python -m src.models ping            # live: call every model, report ok/latency (needs key)
-python -m src.collect estimate all   # offline cost ballpark (no key)
+python -m src.collect estimate       # offline cost ballpark (no key)
 python -m src.collect bracket        # one-shot full bracket, all models
-python -m src.collect round R32      # collect a round from all models
-python -m src.collect me round R32   # enter Nadiem's picks
+python -m src.collect me             # enter Nadiem's bracket (CLI; or use `make enter`)
 git push                             # redeploys the live site automatically
 ```
 
@@ -127,7 +134,8 @@ data/fixtures/<R>.json         fixtures you enter per round (R32 = official slot
 data/results/<R>.json          outcomes you enter per round
 data/bracket.json              knockout wiring (verified vs official FIFA bracket)
 data/predictions/...           collected predictions (committed → shown on site)
-src/                           collect · score · site · scaffold · models · prompts · common
+src/                           collect · score · site · enter · scaffold · models · prompts · common · flags
+local/enter.html               PRIVATE picks tool (git-ignored, built by `make enter`, never deployed)
 tests/                         stdlib unittest suite
 .github/workflows/             ci.yml + deploy-pages.yml
 Makefile · docs/DEPLOY.md      build shortcuts + publishing
