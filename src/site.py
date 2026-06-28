@@ -13,7 +13,7 @@ import sys
 from datetime import datetime, timezone
 
 from .common import (
-    FIXTURES_DIR, OUTPUT_DIR, PRED_DIR, ROUND_LABELS, ROUND_ORDER,
+    DATA_DIR, FIXTURES_DIR, OUTPUT_DIR, PRED_DIR, ROUND_LABELS, ROUND_ORDER,
     load_json, load_models_config,
 )
 from . import score as scoring
@@ -94,6 +94,7 @@ def gather_data():
         "round_labels": ROUND_LABELS,
         "bracket_board": scores["bracket"],
         "actual_bracket": _actual_bracket_display(),
+        "bracket_slots": (load_json(DATA_DIR / "bracket.json") or {}).get("slots", {}),
         "fixtures": fixtures,
         "results": results,
         "bracket_predictions": _bracket_predictions(meta),
@@ -332,37 +333,82 @@ TEMPLATE = r"""<!doctype html>
     return '<div class="match"><div class="row">'+teamLabel(m.home,false)+'<span class="go">·</span></div>'+
       '<div class="row">'+teamLabel(m.away,false)+'<span class="go">·</span></div></div>';
   }
-  /* ---------- Predictions (each entrant's bracket vs. the actual bracket) ---------- */
+  /* ---------- Predictions (each model's picks filled into a bracket tree) ---------- */
   function predictions(){
     var el=document.getElementById('pr');
     var bp=D.bracket_predictions||[];
     if(!bp.length){ el.innerHTML='<div class="empty">No bracket predictions collected yet.</div>'; return; }
-    el.innerHTML='<select id="prmodel"></select><div id="prbody"></div>'+
-      '<h2 class="section">Actual bracket</h2>'+
-      '<div class="legend" style="margin-bottom:10px">How the real tournament is unfolding — compare it against the picks above.</div>'+
-      actualBracketTree();
+    el.innerHTML='<select id="prmodel"></select><div id="prbody"></div>';
     var msel=document.getElementById('prmodel');
     msel.innerHTML=bp.map(function(x){ return '<option value="'+esc(x.slug)+'">'+esc(x.name)+'</option>'; }).join('');
     function render(){
       var b=bp.filter(function(x){return x.slug===msel.value;})[0];
-      document.getElementById('prbody').innerHTML=b?bracketPredTable(b):'';
+      document.getElementById('prbody').innerHTML=b?predBracketView(b):'';
     }
     msel.onchange=render; render();
   }
-  function bracketPredTable(b){
+  /* Flow a model's stage picks through the bracket wiring into a connected tree. */
+  function predTree(pred){
+    var slots=D.bracket_slots||{}, r32=(D.fixtures&&D.fixtures.R32)||[];
+    if(!r32.length || !Object.keys(slots).length)
+      return '<div class="empty">Bracket wiring unavailable.</div>';
+    var r32ById={}; r32.forEach(function(m){ r32ById[m.id]=m; });
     var ab=D.actual_bracket||{};
-    function row(key,label){
-      var actual=(ab[key]||[]).map(norm);
-      var chips=(b.rounds[key]||[]).map(function(t){
-        var hit=actual.indexOf(norm(t))>=0;
-        return '<span class="chip'+(hit?' hit':'')+'">'+flagImg(t)+esc(t)+(hit?' ✓':'')+'</span>';
-      }).join('')||'<span class="muted">—</span>';
-      return '<tr><td class="l muted">'+label+'</td><td class="l"><div class="chips">'+chips+'</div></td></tr>';
+    var rounds=pred.rounds||{};
+    var listByStage={ R16:(rounds.R16||[]).map(norm), QF:(rounds.QF||[]).map(norm),
+                      SF:(rounds.SF||[]).map(norm), F:(rounds.F||[]).map(norm) };
+    var champ=norm(rounds.champion);
+    function slotIds(p){ return Object.keys(slots).filter(function(k){return k.indexOf(p+'-')===0;})
+      .sort(function(a,b){return (+a.split('-')[1])-(+b.split('-')[1]);}); }
+    var R16=slotIds('R16'), QF=slotIds('QF'), SF=slotIds('SF'), FIN=slotIds('F');
+    var R32ids=r32.map(function(m){return m.id;});
+    function nextStage(slot){ var p=slot.split('-')[0];
+      return p==='R32'?'R16':p==='R16'?'QF':p==='QF'?'SF':p==='SF'?'F':'champion'; }
+    var cache={};
+    function teamsFor(slot){
+      if(slot.indexOf('R32-')===0){ var m=r32ById[slot]; return m?[m.home,m.away]:[null,null]; }
+      var fe=slots[slot]||[]; return [winnerOf(fe[0]), winnerOf(fe[1])];
     }
-    return '<div class="legend" style="margin-bottom:10px">'+esc(b.name)+' — one-shot bracket — '+b.points+' pts</div>'+
-      '<div class="tw"><table>'+row('R16','Round of 16')+row('QF','Quarter-finals')+row('SF','Semi-finals')+
-      row('F','Finalists')+'<tr><td class="l muted">Champion</td><td class="l">'+teamInline(b.rounds.champion)+'</td></tr>'+
-      '<tr><td class="l muted">Third place</td><td class="l">'+teamInline(b.rounds.third)+'</td></tr></table></div>';
+    function winnerOf(slot){
+      if(slot in cache) return cache[slot];
+      cache[slot]=null;  // guard against cycles
+      var t=teamsFor(slot), stage=nextStage(slot), w=null;
+      if(stage==='champion'){ w=(t[0]&&norm(t[0])===champ)?t[0]:((t[1]&&norm(t[1])===champ)?t[1]:null); }
+      else { var list=listByStage[stage]||[];
+        if(t[0]&&list.indexOf(norm(t[0]))>=0) w=t[0];
+        else if(t[1]&&list.indexOf(norm(t[1]))>=0) w=t[1]; }
+      cache[slot]=w; return w;
+    }
+    function advanced(team,stage){ if(!team) return false;
+      if(stage==='champion') return ab.champion && norm(team)===norm(ab.champion);
+      return (ab[stage]||[]).map(norm).indexOf(norm(team))>=0; }
+    function card(slot){
+      var t=teamsFor(slot), w=winnerOf(slot), stage=nextStage(slot), adv=advanced(w,stage);
+      function rw(team){ var isW=!!(w&&team&&norm(team)===norm(w));
+        return '<div class="row">'+teamLabel(team,isW)+'<span class="go ok">'+(isW&&adv?'✓':'')+'</span></div>'; }
+      return '<div class="match">'+rw(t[0])+rw(t[1])+'</div>';
+    }
+    var cols=[['Round of 32',R32ids],['Round of 16',R16],['Quarter-finals',QF],['Semi-finals',SF],['Final',FIN]];
+    var html='<div class="bracket">';
+    cols.forEach(function(c){
+      html+='<div class="col"><h3>'+esc(c[0])+'</h3><div class="col-body">';
+      c[1].forEach(function(slot){ html+=card(slot); });
+      html+='</div></div>';
+    });
+    return html+'</div>';
+  }
+  function predBracketView(b){
+    var ab=D.actual_bracket||{}, scored=D.bracket_board.have_results;
+    var champOk=ab.champion&&norm(b.rounds.champion)===norm(ab.champion);
+    var thirdOk=ab.third&&norm(b.rounds.third)===norm(ab.third);
+    return '<div class="legend" style="margin-bottom:12px">'+esc(b.name)+' — predicted bracket'+
+        (scored?(' — '+b.points+' pts'):'')+
+        '. <span class="muted">Gold = pick to advance'+(scored?'; ✓ = pick that actually reached that stage':'')+'.</span></div>'+
+      predTree(b)+
+      '<div style="margin-top:14px;display:flex;flex-wrap:wrap;gap:22px;align-items:center;font-size:1.02rem">'+
+      '<span style="display:flex;align-items:center;gap:8px">Champion: '+teamInline(b.rounds.champion,champOk?'ok':'')+(champOk?'<span class="ok">✓</span>':'')+'</span>'+
+      '<span style="display:flex;align-items:center;gap:8px">Third place: '+teamInline(b.rounds.third,thirdOk?'ok':'')+(thirdOk?'<span class="ok">✓</span>':'')+'</span>'+
+      '</div>';
   }
 
   /* ---------- About / methodology ---------- */
