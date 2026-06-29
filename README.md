@@ -52,11 +52,17 @@ ballpark — no key needed.
    make enter                               # …or a nicer point-and-click version (private, local-only)
    ```
 
-**Then, as the tournament plays out:**
+**Then, as the tournament plays out** — automatically, every night:
+
+A nightly GitHub Action ([`refresh-results.yml`](.github/workflows/refresh-results.yml))
+looks up the day's finished knockout results, records them, and redeploys the leaderboard.
+See [docs/DEPLOY.md](docs/DEPLOY.md#nightly-auto-refresh-hands-off-results) (needs an
+`OPENROUTER_API_KEY` repo secret). To do it by hand instead:
 
 3. **Enter results** as matches finish in `data/results/<ROUND>.json` (`R32`, `R16`, `QF`,
    `SF`, `TP`, `F`). Blank templates exist for every round (`python -m src.scaffold all`).
-   This is how brackets get scored and how the bracket tree fills in.
+   Then `python -m src.advance` fills the next round's fixtures (and the third-place match)
+   from the winners, so the bracket tree stays current.
 4. **Score & build the site:**
    ```bash
    python -m src.score    # prints the leaderboard + writes data/scores.json
@@ -76,7 +82,7 @@ data/bracket.json          knockout wiring (which slots feed which) for scoring 
 data/predictions/bracket/*.json  one-shot full-bracket predictions (one per model + Nadiem)
 output/index.html          the generated public website (leaderboard · bracket · predictions · about)
 local/enter.html           PRIVATE point-and-click bracket entry (git-ignored, never deployed)
-src/      collect.py · score.py · site.py · enter.py · scaffold.py · models.py · prompts.py · common.py · flags.py
+src/      collect.py · score.py · advance.py · fetch_results.py · site.py · enter.py · scaffold.py · models.py · prompts.py · common.py · flags.py
 tests/    stdlib unittest suite · Makefile · docs/DEPLOY.md
 ```
 

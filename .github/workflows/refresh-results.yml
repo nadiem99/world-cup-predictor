@@ -1,0 +1,74 @@
+name: Nightly results refresh
+
+# Each night: look up the day's finished 2026 World Cup knockout results (via an
+# OpenRouter web-search model), propagate winners into the next round's fixtures,
+# re-score, and — only if something changed — commit the new results to main and
+# kick off the Pages deploy. Manual runs: Actions → Nightly results refresh → Run.
+#
+# Requires one repository secret: OPENROUTER_API_KEY (Settings → Secrets and
+# variables → Actions). Optional override: a RESULTS_FETCH_MODEL repo variable to
+# use a different web-search-capable model id (default openai/gpt-4o:online).
+
+on:
+  schedule:
+    - cron: "6 8 * * *"        # ~08:06 UTC daily (off the :00 mark to avoid scheduler pileup)
+  workflow_dispatch: {}
+
+permissions:
+  contents: write              # commit + push the day's results
+  actions: write               # dispatch the Pages deploy workflow
+
+concurrency:
+  group: results-refresh
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Fetch the day's finished results
+        env:
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          RESULTS_FETCH_MODEL: ${{ vars.RESULTS_FETCH_MODEL }}
+          REFRESH_SUMMARY_FILE: ${{ runner.temp }}/refresh_summary.txt
+        run: python -m src.fetch_results
+
+      - name: Propagate winners into next-round fixtures
+        run: python -m src.advance
+
+      - name: Score and run the test suite
+        run: |
+          python -m src.score
+          python -m unittest discover -s tests -t . -v
+
+      - name: Commit and push if results changed
+        id: commit
+        run: |
+          if [ -z "$(git status --porcelain data/)" ]; then
+            echo "No new results — nothing to commit."
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          git config user.name "wc-results-bot"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/
+          SUMMARY="${{ runner.temp }}/refresh_summary.txt"
+          if [ -s "$SUMMARY" ]; then
+            git commit -F "$SUMMARY"
+          else
+            git commit -m "Nightly results refresh ($(date -u +%F))"
+          fi
+          git push
+          echo "changed=true" >> "$GITHUB_OUTPUT"
+
+      - name: Trigger Pages deploy
+        if: steps.commit.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh workflow run deploy-pages.yml

@@ -31,7 +31,30 @@ results, and one-shot bracket predictions. The typical loop:
 
 1. Once, before R32: collect the brackets (`python -m src.collect bracket`, `... me`).
 2. Enter results as matches finish in `data/results/<R>.json` — this scores the brackets.
+   Then `python -m src.advance` to fill the next round's fixtures (Bracket-tab tree).
 3. Commit and push. The workflow rebuilds and redeploys automatically.
 
 > Note: `output/` and `data/scores.json` are git-ignored — they are generated artifacts,
 > rebuilt by the workflow (and by `make site`) from the committed `data/` inputs.
+
+## Nightly auto-refresh (hands-off results)
+
+[`.github/workflows/refresh-results.yml`](../.github/workflows/refresh-results.yml) runs
+every night (~08:06 UTC) so step 2 above happens on its own. Each run it:
+
+1. Asks a web-search-capable model (via OpenRouter) for the FINAL score of any
+   not-yet-recorded knockout match whose two teams are known (`python -m src.fetch_results`).
+   It is conservative — a match it can't confirm as finished, or a winner that isn't one of
+   the two fixture teams, is skipped and left for the next run.
+2. Propagates winners into the next round's fixtures (`python -m src.advance`).
+3. Re-scores and runs the test suite.
+4. Only if something changed, commits the new results to `main` (citing sources) and
+   triggers the Pages deploy.
+
+**One-time setup:** add your OpenRouter key as a repository secret —
+**Settings → Secrets and variables → Actions → New repository secret**, name
+`OPENROUTER_API_KEY`. (Optional: set a `RESULTS_FETCH_MODEL` repo *variable* to override the
+default `openai/gpt-4o:online`; it must be a web-search-capable model id.)
+
+Test it any time without waiting for the cron: **Actions → Nightly results refresh → Run
+workflow**. Dry-run locally with `python -m src.fetch_results --dry-run` (writes nothing).
