@@ -1,15 +1,19 @@
 PYTHON ?= python3
 
 .DEFAULT_GOAL := help
-.PHONY: help site serve enter test clean
+.PHONY: help site serve enter advance test clean
 
 help:
 	@echo "World Cup predictor — make targets:"
-	@echo "  make site   build output/index.html (runs score then site)"
-	@echo "  make serve  serve output/ at http://localhost:8000 (run 'make site' first)"
-	@echo "  make enter  build + open the PRIVATE local picks tool (local/enter.html, not deployed)"
-	@echo "  make test   run the unit test suite"
-	@echo "  make clean  remove generated output/, local/, and data/scores.json"
+	@echo "  make site    build output/index.html (runs score then site)"
+	@echo "  make advance fill next-round fixtures from entered results (run after editing data/results)"
+	@echo "  make serve   serve output/ at http://localhost:8000 (run 'make site' first)"
+	@echo "  make enter   build + open the PRIVATE local picks tool (local/enter.html, not deployed)"
+	@echo "  make test    run the unit test suite"
+	@echo "  make clean   remove generated output/, local/, and data/scores.json"
+
+advance:
+	$(PYTHON) -m src.advance
 
 site:
 	$(PYTHON) -m src.score
