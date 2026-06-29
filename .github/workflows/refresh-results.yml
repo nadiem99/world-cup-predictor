@@ -1,21 +1,16 @@
 name: Nightly results refresh
 
-# Each night: look up the day's finished 2026 World Cup knockout results (via an
-# OpenRouter web-search model), propagate winners into the next round's fixtures,
-# re-score, and — only if something changed — commit the new results to main and
-# kick off the Pages deploy. Manual runs: Actions → Nightly results refresh → Run.
+# Each night: read the day's finished 2026 World Cup knockout results from FotMob,
+# propagate winners into the next round's fixtures, re-score, and — only if something
+# changed — commit the new results to main and kick off the Pages deploy. Manual
+# runs: Actions → Nightly results refresh → Run.
 #
-# Requires one repository secret: OPENROUTER_API_KEY (Settings → Secrets and
-# variables → Actions). Optional override: a RESULTS_FETCH_MODEL repo variable to
-# use a different web-search-capable model id (default openai/gpt-4o:online).
+# No secrets or API keys required: the fetcher reads FotMob's public league page
+# (deterministic, standard-library only). See docs/DEPLOY.md.
 
 on:
-  # Auto-schedule is disabled pending a reliable results source: the LLM fetcher
-  # proved too non-deterministic to auto-publish unattended (it both fabricated and
-  # under-reported the same match across runs). Re-enable by uncommenting once the
-  # fetch step is switched to a deterministic source (see docs/DEPLOY.md).
-  # schedule:
-  #   - cron: "6 8 * * *"      # ~08:06 UTC daily (off the :00 mark to avoid scheduler pileup)
+  schedule:
+    - cron: "6 8 * * *"        # ~08:06 UTC daily (off the :00 mark to avoid scheduler pileup)
   workflow_dispatch: {}
 
 permissions:
@@ -36,10 +31,8 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Fetch the day's finished results
+      - name: Fetch the day's finished results (FotMob)
         env:
-          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
-          RESULTS_FETCH_MODEL: ${{ vars.RESULTS_FETCH_MODEL }}
           REFRESH_SUMMARY_FILE: ${{ runner.temp }}/refresh_summary.txt
         run: python -m src.fetch_results
 

@@ -55,9 +55,9 @@ ballpark — no key needed.
 **Then, as the tournament plays out** — automatically, every night:
 
 A nightly GitHub Action ([`refresh-results.yml`](.github/workflows/refresh-results.yml))
-looks up the day's finished knockout results, records them, and redeploys the leaderboard.
-See [docs/DEPLOY.md](docs/DEPLOY.md#nightly-auto-refresh-hands-off-results) (needs an
-`OPENROUTER_API_KEY` repo secret). To do it by hand instead:
+reads the day's finished knockout results from **FotMob**, records them, and redeploys the
+leaderboard — deterministic, no API key. See
+[docs/DEPLOY.md](docs/DEPLOY.md#nightly-auto-refresh-hands-off-results). To do it by hand instead:
 
 3. **Enter results** as matches finish in `data/results/<ROUND>.json` (`R32`, `R16`, `QF`,
    `SF`, `TP`, `F`). Blank templates exist for every round (`python -m src.scaffold all`).

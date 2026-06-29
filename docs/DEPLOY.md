@@ -42,21 +42,19 @@ results, and one-shot bracket predictions. The typical loop:
 [`.github/workflows/refresh-results.yml`](../.github/workflows/refresh-results.yml) runs
 every night (~08:06 UTC) so step 2 above happens on its own. Each run it:
 
-1. Asks a web-search-capable model (via OpenRouter) for the FINAL score of any
-   not-yet-recorded knockout match whose two teams are known (`python -m src.fetch_results`).
-   It is conservative — a match it can't confirm as finished, or a winner that isn't one of
-   the two fixture teams, is skipped and left for the next run.
+1. Reads the day's finished knockout results from **FotMob** (`python -m src.fetch_results`).
+   It parses FotMob's public 2026 World Cup league page, matches each finished knockout game
+   to the corresponding fixture by team pairing, copies the full-time score across (resolving
+   penalty shootouts via the match page), and skips anything not yet finished.
 2. Propagates winners into the next round's fixtures (`python -m src.advance`).
 3. Re-scores and runs the test suite.
-4. Only if something changed, commits the new results to `main` (citing sources) and
-   triggers the Pages deploy.
+4. Only if something changed, commits the new results to `main` (citing the FotMob source)
+   and triggers the Pages deploy.
 
-**One-time setup:** add your OpenRouter key as a repository secret —
-**Settings → Secrets and variables → Actions → New repository secret**, name
-`OPENROUTER_API_KEY`. (Optional: set a `RESULTS_FETCH_MODEL` repo *variable* to override the
-default `perplexity/sonar-pro`; use a model that always web-searches and grounds its answer in
-sources — a dedicated search model declines when a match hasn't finished, while a general model
-with an optional `:online` plugin can skip the search and hallucinate a score.)
+**No setup, no secrets, no API key** — the fetch is deterministic and standard-library only.
+It records only what FotMob reports as finished, with internal-consistency guards (a level
+score must go to penalties, the advancing team must be the higher scorer, etc.).
 
 Test it any time without waiting for the cron: **Actions → Nightly results refresh → Run
-workflow**. Dry-run locally with `python -m src.fetch_results --dry-run` (writes nothing).
+workflow**. Dry-run locally with `python -m src.fetch_results --dry-run` (writes nothing). To
+point at a different source page, set the `FOTMOB_MATCHES_URL` env var.

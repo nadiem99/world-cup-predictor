@@ -1,45 +1,182 @@
-"""Fetch finished 2026 World Cup knockout results via an OpenRouter web-search model.
+"""Fetch finished 2026 World Cup knockout results from FotMob (deterministic).
 
-Drives the nightly GitHub Actions refresh. Reads the fixtures and current results,
-asks a web-search-capable model for the FINAL scores of any not-yet-recorded match
-whose two teams are known, validates every answer against the fixtures, and writes
-the confirmed ones into data/results/<ROUND>.json. Conservative by design: anything
-the model will not confirm as finished is left untouched for a future run, and a
-returned winner that isn't one of the match's two fixture teams is discarded.
+Replaces the earlier LLM-based fetcher, which was too non-deterministic to
+auto-publish (it both fabricated and under-reported the same match across runs).
+This reads FotMob's public league page for the 2026 World Cup (league 77), pulls
+the match list embedded in the page's __NEXT_DATA__ JSON, and for each
+not-yet-recorded fixture whose two teams are known, copies the real full-time
+score across — orienting it to our home/away and resolving the winner (penalty
+shootouts via the match page's `whoLostOnPenalties`). No API key, no model,
+standard library only.
 
-  OPENROUTER_API_KEY=... python -m src.fetch_results
-  OPENROUTER_API_KEY=... python -m src.fetch_results --dry-run   # change nothing
+  python -m src.fetch_results
+  python -m src.fetch_results --dry-run    # print what would change; write nothing
 
 Env:
-  RESULTS_FETCH_MODEL   OpenRouter model id (default perplexity/sonar-pro). Use a model
-                        that ALWAYS searches the web and grounds its answer in sources —
-                        a dedicated search model declines honestly when a match hasn't
-                        finished, whereas a general model with an optional ':online' plugin
-                        may skip the search and hallucinate a plausible-looking score.
-  REFRESH_SUMMARY_FILE  optional path; a one-line-per-match summary (with sources) is
-                        written here for the workflow to use as a commit-message body.
+  FOTMOB_MATCHES_URL    override the source page (default: the 2026 World Cup matches tab).
+  REFRESH_SUMMARY_FILE  optional path; a one-line-per-match summary is written here for
+                        the workflow to use as a commit-message body.
 """
 import argparse
+import json
 import os
 import re
 import sys
-from datetime import datetime, timezone
+import unicodedata
+import urllib.request
 from pathlib import Path
 
-from .common import (
-    FIXTURES_DIR, RESULTS_DIR, ROUND_LABELS, ROUND_ORDER,
-    OpenRouter, extract_json, load_json, save_json,
-)
+from .common import FIXTURES_DIR, RESULTS_DIR, ROUND_ORDER, load_json, save_json
 
-DEFAULT_MODEL = "perplexity/sonar-pro"  # always web-searches; declines instead of hallucinating
+FOTMOB_URL = "https://www.fotmob.com/leagues/77/matches/world-cup"
+_UA = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36"
+# normalized FotMob team name -> normalized fixture name, for the few that differ
+_ALIASES = {"usa": "unitedstates"}
 DECIDED_BY = ("regulation", "extra_time", "penalties")
-_BARE_CITATION = re.compile(r"^\s*\[?\d+\]?\s*$")  # e.g. "[10]" — a citation index, not a source
+_BARE_CITATION = re.compile(r"^\s*\[?\d+\]?\s*$")
+_NEXT_DATA = re.compile(
+    r'<script id="__NEXT_DATA__" type="application/json">(.*?)</script>', re.DOTALL)
+_SCORE = re.compile(r"^\s*(\d+)\s*-\s*(\d+)\s*$")
 
 
 def _norm(s):
-    return str(s or "").strip().lower()
+    s = unicodedata.normalize("NFD", str(s or ""))
+    s = "".join(c for c in s if unicodedata.category(c) != "Mn")
+    n = re.sub(r"[^a-z0-9]+", "", s.lower())
+    return _ALIASES.get(n, n)
 
 
+# ---------------------------------------------------------------------------
+# Which fixtures still need a result
+# ---------------------------------------------------------------------------
+def pending_matches(fixtures_by_round, results_by_round):
+    """Matches whose two teams are known but whose result isn't recorded yet."""
+    pend = []
+    for rnd in ROUND_ORDER:
+        fx = (fixtures_by_round.get(rnd) or {}).get("matches", [])
+        res = {m.get("id"): m for m in (results_by_round.get(rnd) or {}).get("matches", [])}
+        for m in fx:
+            home, away = m.get("home"), m.get("away")
+            if not home or not away:
+                continue  # teams not determined yet (an earlier round is unfinished)
+            r = res.get(m.get("id")) or {}
+            if r.get("home_goals") is not None and r.get("away_goals") is not None:
+                continue  # already recorded — never overwrite
+            pend.append({"id": m.get("id"), "round": rnd, "home": home, "away": away})
+    return pend
+
+
+# ---------------------------------------------------------------------------
+# FotMob source
+# ---------------------------------------------------------------------------
+def _fetch(url, timeout=30):
+    req = urllib.request.Request(url, headers={"User-Agent": _UA})
+    with urllib.request.urlopen(req, timeout=timeout) as resp:
+        return resp.read().decode("utf-8", "replace")
+
+
+def _next_data(html):
+    m = _NEXT_DATA.search(html or "")
+    if not m:
+        raise ValueError("FotMob page did not contain __NEXT_DATA__")
+    return json.loads(m.group(1))
+
+
+def all_matches(data):
+    return (((data.get("props") or {}).get("pageProps") or {})
+            .get("fixtures") or {}).get("allMatches") or []
+
+
+def knockout_finished(matches):
+    """FotMob knockout matches that have finished, normalized to simple dicts.
+
+    Knockout rounds carry non-numeric round ids (1/16, 1/8, 1/4, 1/2, bronze,
+    final); the group stage uses "1"/"2"/"3", which we skip so a group game with
+    the same two teams can never be mistaken for the knockout meeting."""
+    out = []
+    for mm in matches or []:
+        if str(mm.get("round")).isdigit():
+            continue
+        st = mm.get("status") or {}
+        if not st.get("finished"):
+            continue
+        home = (mm.get("home") or {}).get("name")
+        away = (mm.get("away") or {}).get("name")
+        score = _SCORE.match(str(st.get("scoreStr") or ""))
+        if not home or not away or "/" in home or "/" in away or not score:
+            continue  # undetermined slot (e.g. "Netherlands/Morocco") or no score
+        reason = (st.get("reason") or {}).get("shortKey") or (st.get("reason") or {}).get("short")
+        out.append({"home": home, "away": away,
+                    "hg": int(score.group(1)), "ag": int(score.group(2)),
+                    "reason": str(reason or ""),
+                    "url": "https://www.fotmob.com" + (mm.get("pageUrl") or "")})
+    return out
+
+
+def _decided_by(reason):
+    r = str(reason).lower()
+    if "pen" in r:
+        return "penalties"
+    if "extra" in r or "aet" in r:
+        return "extra_time"
+    return "regulation"
+
+
+def _penalty_winner(match_url, fetch=_fetch):
+    """Resolve a shootout winner from a match page via header.status.whoLostOnPenalties.
+
+    Returns the winning team's FotMob name, or None if not determinable."""
+    try:
+        hdr = (((_next_data(fetch(match_url)).get("props") or {}).get("pageProps") or {})
+               .get("header")) or {}
+    except Exception:
+        return None
+    teams = hdr.get("teams") or []
+    lost = (hdr.get("status") or {}).get("whoLostOnPenalties")
+    if not lost or len(teams) != 2:
+        return None
+    ln = _norm(lost)
+    for i, t in enumerate(teams):
+        if _norm(t.get("name")) == ln or str(t.get("id")) == str(lost):
+            return teams[1 - i].get("name")  # the other team won
+    return None
+
+
+def fotmob_results(pending, finished, fetch=_fetch):
+    """Map FotMob finished knockout matches onto our pending fixtures.
+
+    Returns (results, unresolved); results are dicts shaped for apply_results."""
+    by_pair = {frozenset((_norm(f["home"]), _norm(f["away"]))): f for f in finished}
+    results, unresolved = [], []
+    for p in pending:
+        f = by_pair.get(frozenset((_norm(p["home"]), _norm(p["away"]))))
+        if not f:
+            continue
+        if _norm(p["home"]) == _norm(f["home"]):
+            hg, ag = f["hg"], f["ag"]
+        else:
+            hg, ag = f["ag"], f["hg"]            # orient the score to our home/away
+        if hg == ag:                              # a knockout draw was settled on penalties
+            win_name = _penalty_winner(f["url"], fetch=fetch)
+            winner = (p["home"] if win_name and _norm(win_name) == _norm(p["home"])
+                      else p["away"] if win_name and _norm(win_name) == _norm(p["away"]) else None)
+            if not winner:
+                unresolved.append((p["id"], "drawn knockout — penalty winner not available yet"))
+                continue
+            decided = "penalties"
+        else:
+            winner = p["home"] if hg > ag else p["away"]
+            decided = _decided_by(f["reason"])
+            if decided == "penalties":            # a decisive score is never on penalties
+                decided = "regulation"
+        results.append({"id": p["id"], "home_goals": hg, "away_goals": ag,
+                        "advances": winner, "decided_by": decided, "source": f["url"]})
+    return results, unresolved
+
+
+# ---------------------------------------------------------------------------
+# Validation safety net + merge into the results files
+# ---------------------------------------------------------------------------
 def _bad_source(s):
     """True if the cited source is empty or a bare citation marker like '[10]'."""
     s = str(s or "").strip()
@@ -47,8 +184,8 @@ def _bad_source(s):
 
 
 def validate_result(r, pend):
-    """Validate one model result for pending match `pend`; the last line of defence
-    against fabricated/garbled data reaching the public leaderboard.
+    """Validate one result for pending match `pend`; the last line of defence
+    against garbled data reaching the public leaderboard.
 
     Returns (winner, decided_by, home_goals, away_goals) or raises ValueError(reason).
     Enforces internal consistency: a level full-time score can only be settled by a
@@ -86,67 +223,10 @@ def validate_result(r, pend):
     return winner, decided, hg, ag
 
 
-def _utc_today():
-    return datetime.now(timezone.utc).strftime("%Y-%m-%d")
-
-
-def pending_matches(fixtures_by_round, results_by_round):
-    """Matches whose two teams are known but whose result isn't recorded yet."""
-    pend = []
-    for rnd in ROUND_ORDER:
-        fx = (fixtures_by_round.get(rnd) or {}).get("matches", [])
-        res = {m.get("id"): m for m in (results_by_round.get(rnd) or {}).get("matches", [])}
-        for m in fx:
-            home, away = m.get("home"), m.get("away")
-            if not home or not away:
-                continue  # teams not determined yet (an earlier round is unfinished)
-            r = res.get(m.get("id")) or {}
-            if r.get("home_goals") is not None and r.get("away_goals") is not None:
-                continue  # already recorded — never overwrite
-            pend.append({"id": m.get("id"), "round": rnd, "home": home, "away": away})
-    return pend
-
-
-def build_messages(pending, today):
-    lines = ["%s — %s — %s vs %s" % (p["id"], ROUND_LABELS.get(p["round"], p["round"]),
-                                     p["home"], p["away"]) for p in pending]
-    system = (
-        "You are a meticulous football-results checker for the 2026 FIFA World Cup. You report "
-        "ONLY results you can verify from a specific, reliable web source. You never guess, never "
-        "extrapolate, and never output a placeholder score. Declining to report a match is normal "
-        "and expected — most of the time a given match has not been played yet."
-    )
-    user = (
-        "Today is %s. Below are 2026 FIFA World Cup knockout matches we are tracking. Search the "
-        "web and report a result for a match ONLY IF it has actually been played and finished.\n\n"
-        "IMPORTANT: Many or all of these matches may NOT have been played yet. Treat 'no confirmed "
-        "final score' as the normal, expected case. Do NOT guess, do NOT output placeholder or 0-0 "
-        "scores, and do NOT include a match unless a specific reliable source reports its FINAL "
-        "full-time result. Returning an empty list is the correct answer when nothing has finished.\n\n"
-        "Matches (id — round — home vs away):\n%s\n\n"
-        "Return ONLY a JSON object of this exact shape:\n"
-        '{"results": [{"id": "<id>", "home_goals": <int>, "away_goals": <int>, '
-        '"advances": "<team>", "decided_by": "regulation|extra_time|penalties", '
-        '"source": "<full source URL>"}]}\n\n'
-        "Rules:\n"
-        "- Include a match ONLY if it has FINISHED and you can cite a specific source as a full URL.\n"
-        "- home_goals/away_goals = full-time score after regulation + extra time, EXCLUDING penalty "
-        "shootouts. If the score was level after extra time, set decided_by to \"penalties\".\n"
-        "- A decisive score is decided_by \"regulation\" or \"extra_time\", never \"penalties\", and "
-        'the "advances" team must be the higher-scoring side.\n'
-        '- "advances" MUST be exactly one of the two team names given (verbatim). Use only the listed ids.\n'
-        '- If nothing has a confirmed final score, return {"results": []}.'
-        % (today, "\n".join(lines))
-    )
-    return system, user
-
-
 def apply_results(returned, pend_by_id, results_by_round):
-    """Validate model results and merge the valid ones into the results files.
+    """Validate results and merge the valid ones into the results files (in place).
 
-    Mutates the passed results_by_round dicts in place (no IO). Returns
-    (changed_rounds:set, summary:list[str], skipped:list[(id, reason)]).
-    """
+    Returns (changed_rounds:set, summary:list[str], skipped:list[(id, reason)])."""
     changed, summary, skipped = set(), [], []
     res_index = {}
     for rnd, data in results_by_round.items():
@@ -176,10 +256,20 @@ def apply_results(returned, pend_by_id, results_by_round):
     return changed, summary, skipped
 
 
+def _write_summary(summary):
+    path = os.environ.get("REFRESH_SUMMARY_FILE")
+    if not path:
+        return
+    body = "Nightly results refresh\n\n" + "\n".join(summary)
+    try:
+        Path(path).write_text(body, encoding="utf-8")
+    except OSError as e:
+        print("WARN: could not write summary file: %s" % e)
+
+
 def main(argv=None):
-    p = argparse.ArgumentParser(description="Fetch finished WC knockout results via OpenRouter.")
+    p = argparse.ArgumentParser(description="Fetch finished WC knockout results from FotMob.")
     p.add_argument("--dry-run", action="store_true", help="print what would change; write nothing")
-    p.add_argument("--today", default=None, help="override today's date (YYYY-MM-DD)")
     args = p.parse_args(argv)
 
     fixtures_by_round = {rnd: load_json(FIXTURES_DIR / ("%s.json" % rnd)) for rnd in ROUND_ORDER}
@@ -191,27 +281,21 @@ def main(argv=None):
         return 0
     print("Pending matches to check: %d" % len(pending))
 
-    system, user = build_messages(pending, args.today or _utc_today())
-
+    url = os.environ.get("FOTMOB_MATCHES_URL") or FOTMOB_URL
     try:
-        client = OpenRouter()
-        model = os.environ.get("RESULTS_FETCH_MODEL") or DEFAULT_MODEL  # empty env -> default
-        raw = client.chat(model, system, user, timeout=240)
-        data = extract_json(raw)
-    except SystemExit:
-        raise  # missing API key etc. — surface loudly so setup problems are visible
+        finished = knockout_finished(all_matches(_next_data(_fetch(url))))
     except Exception as e:
-        print("WARN: results lookup failed (%s); writing nothing this run." % e)
+        print("WARN: could not read FotMob (%s); writing nothing this run." % e)
         return 0
 
-    returned = data.get("results") if isinstance(data, dict) else None
+    returned, unresolved = fotmob_results(pending, finished)
     pend_by_id = {p["id"]: p for p in pending}
-    changed, summary, skipped = apply_results(returned or [], pend_by_id, results_by_round)
+    changed, summary, skipped = apply_results(returned, pend_by_id, results_by_round)
 
-    for mid, why in skipped:
+    for mid, why in unresolved + skipped:
         print("  skip %s — %s" % (mid, why))
     if not summary:
-        print("No confirmed finished matches this run.")
+        print("No newly-finished knockout matches to record.")
         return 0
     for line in summary:
         print("  recorded %s" % line)
@@ -223,14 +307,7 @@ def main(argv=None):
     for rnd in changed:
         save_json(RESULTS_DIR / ("%s.json" % rnd), results_by_round[rnd])
     print("\nRecorded %d match(es) across %d round(s)." % (len(summary), len(changed)))
-
-    summary_path = os.environ.get("REFRESH_SUMMARY_FILE")
-    if summary_path:
-        body = "Nightly results refresh\n\n" + "\n".join(summary)
-        try:
-            Path(summary_path).write_text(body, encoding="utf-8")
-        except OSError as e:
-            print("WARN: could not write summary file: %s" % e)
+    _write_summary(summary)
     return 0
 
 

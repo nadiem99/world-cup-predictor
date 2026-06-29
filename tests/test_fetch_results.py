@@ -1,8 +1,21 @@
+import json
 import unittest
 
 from src import fetch_results as fr
 
 URL = "https://www.bbc.com/sport/football/example"
+
+
+def _match(home, away, rnd="1/16", finished=True, score="2 - 1", reason="fulltime_short", url="/m"):
+    return {"round": rnd, "home": {"name": home}, "away": {"name": away},
+            "status": {"finished": finished, "scoreStr": score, "reason": {"shortKey": reason}},
+            "pageUrl": url}
+
+
+def _detail_html(teams, who_lost):
+    data = {"props": {"pageProps": {"header": {
+        "teams": teams, "status": {"whoLostOnPenalties": who_lost}}}}}
+    return '<script id="__NEXT_DATA__" type="application/json">%s</script>' % json.dumps(data)
 
 
 class TestPendingMatches(unittest.TestCase):
@@ -111,6 +124,61 @@ class TestValidateResult(unittest.TestCase):
     def test_missing_source_is_rejected(self):
         with self.assertRaises(ValueError):
             fr.validate_result(self._r(source=""), self.pend)
+
+
+class TestKnockoutFinished(unittest.TestCase):
+    def test_filters_to_finished_knockout_with_scores(self):
+        matches = [
+            _match("Mexico", "South Africa", rnd="1"),                       # group stage
+            _match("South Africa", "Canada", rnd="1/16", score="0 - 1"),     # R32, finished
+            _match("Canada", "Netherlands/Morocco", rnd="1/8", finished=False),  # undetermined/unplayed
+            _match("Spain", "Italy", rnd="final", score="1 - 1", reason="penalties_short"),
+        ]
+        got = fr.knockout_finished(matches)
+        ids = {(m["home"], m["away"]) for m in got}
+        self.assertEqual(ids, {("South Africa", "Canada"), ("Spain", "Italy")})
+        sac = [m for m in got if m["home"] == "South Africa"][0]
+        self.assertEqual((sac["hg"], sac["ag"]), (0, 1))
+
+
+class TestFotmobResults(unittest.TestCase):
+    def test_decisive_result_oriented_to_our_fixture(self):
+        # our fixture has the teams in the opposite order to FotMob
+        pending = [{"id": "R32-3", "round": "R32", "home": "South Africa", "away": "Canada"}]
+        finished = [{"home": "Canada", "away": "South Africa", "hg": 1, "ag": 0,
+                     "reason": "fulltime_short", "url": "https://www.fotmob.com/m/x"}]
+        results, unresolved = fr.fotmob_results(pending, finished)
+        self.assertEqual(unresolved, [])
+        self.assertEqual(results[0], {"id": "R32-3", "home_goals": 0, "away_goals": 1,
+                                      "advances": "Canada", "decided_by": "regulation",
+                                      "source": "https://www.fotmob.com/m/x"})
+
+    def test_team_name_alias_usa(self):
+        pending = [{"id": "R32-7", "round": "R32", "home": "United States", "away": "Bosnia and Herzegovina"}]
+        finished = [{"home": "USA", "away": "Bosnia and Herzegovina", "hg": 2, "ag": 1,
+                     "reason": "fulltime_short", "url": "https://www.fotmob.com/m/y"}]
+        results, _ = fr.fotmob_results(pending, finished)
+        self.assertEqual(results[0]["advances"], "United States")
+
+    def test_penalty_winner_resolved_from_detail_page(self):
+        pending = [{"id": "F-1", "round": "F", "home": "Spain", "away": "Italy"}]
+        finished = [{"home": "Spain", "away": "Italy", "hg": 1, "ag": 1,
+                     "reason": "penalties_short", "url": "https://www.fotmob.com/m/f"}]
+        fake = lambda url, timeout=30: _detail_html(
+            [{"name": "Spain", "id": 1}, {"name": "Italy", "id": 2}], who_lost="Italy")
+        results, unresolved = fr.fotmob_results(pending, finished, fetch=fake)
+        self.assertEqual(unresolved, [])
+        self.assertEqual((results[0]["advances"], results[0]["decided_by"]), ("Spain", "penalties"))
+
+    def test_penalty_winner_unresolved_when_missing(self):
+        pending = [{"id": "F-1", "round": "F", "home": "Spain", "away": "Italy"}]
+        finished = [{"home": "Spain", "away": "Italy", "hg": 1, "ag": 1,
+                     "reason": "penalties_short", "url": "https://www.fotmob.com/m/f"}]
+        fake = lambda url, timeout=30: _detail_html(
+            [{"name": "Spain", "id": 1}, {"name": "Italy", "id": 2}], who_lost=None)
+        results, unresolved = fr.fotmob_results(pending, finished, fetch=fake)
+        self.assertEqual(results, [])
+        self.assertEqual(len(unresolved), 1)
 
 
 if __name__ == "__main__":
