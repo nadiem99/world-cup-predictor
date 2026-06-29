@@ -54,7 +54,9 @@ every night (~08:06 UTC) so step 2 above happens on its own. Each run it:
 **One-time setup:** add your OpenRouter key as a repository secret —
 **Settings → Secrets and variables → Actions → New repository secret**, name
 `OPENROUTER_API_KEY`. (Optional: set a `RESULTS_FETCH_MODEL` repo *variable* to override the
-default `openai/gpt-4o:online`; it must be a web-search-capable model id.)
+default `perplexity/sonar-pro`; use a model that always web-searches and grounds its answer in
+sources — a dedicated search model declines when a match hasn't finished, while a general model
+with an optional `:online` plugin can skip the search and hallucinate a score.)
 
 Test it any time without waiting for the cron: **Actions → Nightly results refresh → Run
 workflow**. Dry-run locally with `python -m src.fetch_results --dry-run` (writes nothing).

@@ -11,8 +11,11 @@ returned winner that isn't one of the match's two fixture teams is discarded.
   OPENROUTER_API_KEY=... python -m src.fetch_results --dry-run   # change nothing
 
 Env:
-  RESULTS_FETCH_MODEL   OpenRouter model id (default openai/gpt-4o:online; must be
-                        web-search-capable — any model with the ':online' suffix works).
+  RESULTS_FETCH_MODEL   OpenRouter model id (default perplexity/sonar-pro). Use a model
+                        that ALWAYS searches the web and grounds its answer in sources —
+                        a dedicated search model declines honestly when a match hasn't
+                        finished, whereas a general model with an optional ':online' plugin
+                        may skip the search and hallucinate a plausible-looking score.
   REFRESH_SUMMARY_FILE  optional path; a one-line-per-match summary (with sources) is
                         written here for the workflow to use as a commit-message body.
 """
@@ -27,7 +30,7 @@ from .common import (
     OpenRouter, extract_json, load_json, save_json,
 )
 
-DEFAULT_MODEL = "openai/gpt-4o:online"
+DEFAULT_MODEL = "perplexity/sonar-pro"  # always web-searches; declines instead of hallucinating
 DECIDED_BY = ("regulation", "extra_time", "penalties")
 
 
