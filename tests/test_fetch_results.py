@@ -181,5 +181,29 @@ class TestFotmobResults(unittest.TestCase):
         self.assertEqual(len(unresolved), 1)
 
 
+class TestReconcile(unittest.TestCase):
+    def test_confirms_matching_and_corrects_drift(self):
+        cand = {"R32-3": {"id": "R32-3", "round": "R32", "home": "South Africa", "away": "Canada"},
+                "R32-9": {"id": "R32-9", "round": "R32", "home": "Brazil", "away": "Japan"}}
+        results = {"R32": {"matches": [
+            {"id": "R32-3", "home_goals": 0, "away_goals": 1, "advances": "Canada", "decided_by": "regulation"},
+            {"id": "R32-9", "home_goals": 9, "away_goals": 9, "advances": "Japan", "decided_by": "penalties"},
+        ]}}
+        returned = [
+            {"id": "R32-3", "home_goals": 0, "away_goals": 1, "advances": "Canada",
+             "decided_by": "regulation", "source": URL},   # already matches -> confirmed
+            {"id": "R32-9", "home_goals": 2, "away_goals": 1, "advances": "Brazil",
+             "decided_by": "regulation", "source": URL},   # disagrees -> corrected
+        ]
+        changed, updated, confirmed, skipped = fr.reconcile_results(returned, cand, results)
+        self.assertEqual(confirmed, ["R32-3"])
+        self.assertEqual(changed, {"R32"})
+        self.assertEqual(len(updated), 1)
+        self.assertEqual(skipped, [])
+        m9 = results["R32"]["matches"][1]
+        self.assertEqual((m9["home_goals"], m9["away_goals"], m9["advances"], m9["decided_by"]),
+                         (2, 1, "Brazil", "regulation"))
+
+
 if __name__ == "__main__":
     unittest.main()

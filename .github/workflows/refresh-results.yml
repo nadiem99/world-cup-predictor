@@ -31,10 +31,12 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Fetch the day's finished results (FotMob)
+      - name: Refresh results from FotMob (authoritative)
         env:
           REFRESH_SUMMARY_FILE: ${{ runner.temp }}/refresh_summary.txt
-        run: python -m src.fetch_results
+        # --reconcile makes FotMob the source of truth for the whole board: it records
+        # newly-finished matches and re-checks already-recorded ones, correcting any drift.
+        run: python -m src.fetch_results --reconcile
 
       - name: Propagate winners into next-round fixtures
         run: python -m src.advance

@@ -49,8 +49,12 @@ def _norm(s):
 # ---------------------------------------------------------------------------
 # Which fixtures still need a result
 # ---------------------------------------------------------------------------
-def pending_matches(fixtures_by_round, results_by_round):
-    """Matches whose two teams are known but whose result isn't recorded yet."""
+def pending_matches(fixtures_by_round, results_by_round, include_recorded=False):
+    """Matches whose two teams are known.
+
+    By default returns only those whose result isn't recorded yet (the nightly
+    fill path). With include_recorded=True it returns every known-team fixture —
+    used by --reconcile to re-check already-recorded matches against FotMob."""
     pend = []
     for rnd in ROUND_ORDER:
         fx = (fixtures_by_round.get(rnd) or {}).get("matches", [])
@@ -60,8 +64,9 @@ def pending_matches(fixtures_by_round, results_by_round):
             if not home or not away:
                 continue  # teams not determined yet (an earlier round is unfinished)
             r = res.get(m.get("id")) or {}
-            if r.get("home_goals") is not None and r.get("away_goals") is not None:
-                continue  # already recorded — never overwrite
+            recorded = r.get("home_goals") is not None and r.get("away_goals") is not None
+            if recorded and not include_recorded:
+                continue  # already recorded — fill path never overwrites
             pend.append({"id": m.get("id"), "round": rnd, "home": home, "away": away})
     return pend
 
@@ -256,6 +261,46 @@ def apply_results(returned, pend_by_id, results_by_round):
     return changed, summary, skipped
 
 
+def reconcile_results(returned, cand_by_id, results_by_round):
+    """Make FotMob authoritative over already-recorded results too.
+
+    Overwrites a recorded match only when FotMob disagrees with it, so the board
+    always matches FotMob. Returns (changed_rounds, updated, confirmed, skipped)."""
+    res_index = {}
+    for rnd, data in results_by_round.items():
+        for m in (data or {}).get("matches", []):
+            res_index[m.get("id")] = (rnd, m)
+
+    changed, updated, confirmed, skipped = set(), [], [], []
+    for r in returned or []:
+        mid = r.get("id") if isinstance(r, dict) else None
+        pend = cand_by_id.get(mid)
+        if not pend:
+            skipped.append((mid, "not a candidate"))
+            continue
+        try:
+            winner, decided, hg, ag = validate_result(r, pend)
+        except ValueError as e:
+            skipped.append((mid, str(e)))
+            continue
+        rnd, match = res_index.get(mid, (None, None))
+        if not match:
+            skipped.append((mid, "no results slot"))
+            continue
+        new = (hg, ag, _norm(winner), decided)
+        cur = (match.get("home_goals"), match.get("away_goals"),
+               _norm(match.get("advances")), match.get("decided_by"))
+        if cur == new:
+            confirmed.append(mid)
+            continue
+        match["home_goals"], match["away_goals"] = hg, ag
+        match["advances"], match["decided_by"] = winner, decided
+        changed.add(rnd)
+        updated.append("%s: %s %d-%d %s — %s advances (%s)" % (
+            mid, pend["home"], hg, ag, pend["away"], winner, decided))
+    return changed, updated, confirmed, skipped
+
+
 def _write_summary(summary):
     path = os.environ.get("REFRESH_SUMMARY_FILE")
     if not path:
@@ -270,16 +315,21 @@ def _write_summary(summary):
 def main(argv=None):
     p = argparse.ArgumentParser(description="Fetch finished WC knockout results from FotMob.")
     p.add_argument("--dry-run", action="store_true", help="print what would change; write nothing")
+    p.add_argument("--reconcile", action="store_true",
+                   help="re-check ALL recorded knockout results against FotMob, not just blanks, "
+                        "and correct any that disagree (FotMob is authoritative)")
     args = p.parse_args(argv)
 
     fixtures_by_round = {rnd: load_json(FIXTURES_DIR / ("%s.json" % rnd)) for rnd in ROUND_ORDER}
     results_by_round = {rnd: load_json(RESULTS_DIR / ("%s.json" % rnd)) for rnd in ROUND_ORDER}
 
-    pending = pending_matches(fixtures_by_round, results_by_round)
-    if not pending:
-        print("No pending matches (everything with known teams is already recorded).")
+    candidates = pending_matches(fixtures_by_round, results_by_round, include_recorded=args.reconcile)
+    if not candidates:
+        print("No recorded matches to reconcile yet." if args.reconcile
+              else "No pending matches (everything with known teams is already recorded).")
         return 0
-    print("Pending matches to check: %d" % len(pending))
+    print("%s %d match(es) against FotMob..." % (
+        "Reconciling" if args.reconcile else "Checking", len(candidates)))
 
     url = os.environ.get("FOTMOB_MATCHES_URL") or FOTMOB_URL
     try:
@@ -288,22 +338,41 @@ def main(argv=None):
         print("WARN: could not read FotMob (%s); writing nothing this run." % e)
         return 0
 
-    returned, unresolved = fotmob_results(pending, finished)
-    pend_by_id = {p["id"]: p for p in pending}
-    changed, summary, skipped = apply_results(returned, pend_by_id, results_by_round)
+    returned, unresolved = fotmob_results(candidates, finished)
+    cand_by_id = {p["id"]: p for p in candidates}
+    for mid, why in unresolved:
+        print("  skip %s — %s" % (mid, why))
 
-    for mid, why in unresolved + skipped:
+    if args.reconcile:
+        changed, updated, confirmed, skipped = reconcile_results(returned, cand_by_id, results_by_round)
+        for mid, why in skipped:
+            print("  skip %s — %s" % (mid, why))
+        print("  %d match(es) already matched FotMob." % len(confirmed))
+        for line in updated:
+            print("  CORRECTED %s" % line)
+        if not updated:
+            print("Board already matches FotMob — nothing to correct.")
+            return 0
+        if args.dry_run:
+            print("\n[dry-run] %d match(es) would be corrected; no files written." % len(updated))
+            return 0
+        for rnd in changed:
+            save_json(RESULTS_DIR / ("%s.json" % rnd), results_by_round[rnd])
+        print("\nCorrected %d match(es) across %d round(s) from FotMob." % (len(updated), len(changed)))
+        _write_summary(updated)
+        return 0
+
+    changed, summary, skipped = apply_results(returned, cand_by_id, results_by_round)
+    for mid, why in skipped:
         print("  skip %s — %s" % (mid, why))
     if not summary:
         print("No newly-finished knockout matches to record.")
         return 0
     for line in summary:
         print("  recorded %s" % line)
-
     if args.dry_run:
         print("\n[dry-run] %d match(es) would be recorded; no files written." % len(summary))
         return 0
-
     for rnd in changed:
         save_json(RESULTS_DIR / ("%s.json" % rnd), results_by_round[rnd])
     print("\nRecorded %d match(es) across %d round(s)." % (len(summary), len(changed)))
