@@ -21,6 +21,7 @@ Env:
 """
 import argparse
 import os
+import re
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
@@ -32,10 +33,57 @@ from .common import (
 
 DEFAULT_MODEL = "perplexity/sonar-pro"  # always web-searches; declines instead of hallucinating
 DECIDED_BY = ("regulation", "extra_time", "penalties")
+_BARE_CITATION = re.compile(r"^\s*\[?\d+\]?\s*$")  # e.g. "[10]" — a citation index, not a source
 
 
 def _norm(s):
     return str(s or "").strip().lower()
+
+
+def _bad_source(s):
+    """True if the cited source is empty or a bare citation marker like '[10]'."""
+    s = str(s or "").strip()
+    return (not s) or bool(_BARE_CITATION.match(s))
+
+
+def validate_result(r, pend):
+    """Validate one model result for pending match `pend`; the last line of defence
+    against fabricated/garbled data reaching the public leaderboard.
+
+    Returns (winner, decided_by, home_goals, away_goals) or raises ValueError(reason).
+    Enforces internal consistency: a level full-time score can only be settled by a
+    penalty shootout, a decisive score never is, and the team that advances must be
+    the higher-scoring side. Also requires a real (non-citation-marker) source.
+    """
+    try:
+        hg, ag = int(r["home_goals"]), int(r["away_goals"])
+    except (KeyError, TypeError, ValueError):
+        raise ValueError("non-integer goals")
+    if hg < 0 or ag < 0:
+        raise ValueError("negative goals")
+
+    adv = _norm(r.get("advances"))
+    if adv == _norm(pend["home"]):
+        winner = pend["home"]            # store the fixture's exact spelling
+    elif adv == _norm(pend["away"]):
+        winner = pend["away"]
+    else:
+        raise ValueError("winner is not one of the two teams")
+
+    decided = r.get("decided_by") if r.get("decided_by") in DECIDED_BY else "regulation"
+    if hg == ag:
+        if decided != "penalties":
+            raise ValueError("level score must be decided by penalties")
+    else:
+        if decided == "penalties":
+            raise ValueError("decisive score cannot be decided by penalties")
+        higher = pend["home"] if hg > ag else pend["away"]
+        if _norm(winner) != _norm(higher):
+            raise ValueError("the team that advances must be the higher-scoring side")
+
+    if _bad_source(r.get("source")):
+        raise ValueError("missing or non-specific source")
+    return winner, decided, hg, ag
 
 
 def _utc_today():
@@ -63,25 +111,31 @@ def build_messages(pending, today):
     lines = ["%s — %s — %s vs %s" % (p["id"], ROUND_LABELS.get(p["round"], p["round"]),
                                      p["home"], p["away"]) for p in pending]
     system = (
-        "You are a meticulous football-results checker for the 2026 FIFA World Cup. "
-        "You report ONLY match results you can verify from reliable, current web sources. "
-        "If you cannot confirm a match has finished, you omit it. You never guess or extrapolate."
+        "You are a meticulous football-results checker for the 2026 FIFA World Cup. You report "
+        "ONLY results you can verify from a specific, reliable web source. You never guess, never "
+        "extrapolate, and never output a placeholder score. Declining to report a match is normal "
+        "and expected — most of the time a given match has not been played yet."
     )
     user = (
-        "Today is %s. For each 2026 FIFA World Cup knockout match listed below, search the web "
-        "for its FINAL result.\n\nMatches (id — round — home vs away):\n%s\n\n"
+        "Today is %s. Below are 2026 FIFA World Cup knockout matches we are tracking. Search the "
+        "web and report a result for a match ONLY IF it has actually been played and finished.\n\n"
+        "IMPORTANT: Many or all of these matches may NOT have been played yet. Treat 'no confirmed "
+        "final score' as the normal, expected case. Do NOT guess, do NOT output placeholder or 0-0 "
+        "scores, and do NOT include a match unless a specific reliable source reports its FINAL "
+        "full-time result. Returning an empty list is the correct answer when nothing has finished.\n\n"
+        "Matches (id — round — home vs away):\n%s\n\n"
         "Return ONLY a JSON object of this exact shape:\n"
         '{"results": [{"id": "<id>", "home_goals": <int>, "away_goals": <int>, '
         '"advances": "<team>", "decided_by": "regulation|extra_time|penalties", '
-        '"source": "<url or publication>"}]}\n\n'
+        '"source": "<full source URL>"}]}\n\n'
         "Rules:\n"
-        "- Include a match ONLY if you can confirm from a reliable source that it has FINISHED. "
-        "Omit any match not yet kicked off, in progress, or that you are unsure about.\n"
-        "- home_goals/away_goals = score at the end of regulation + extra time, EXCLUDING any "
-        "penalty shootout.\n"
-        '- "advances" MUST be exactly one of the two team names given for that match (verbatim).\n'
-        "- Use only the match ids listed; do not invent matches.\n"
-        '- If no listed match has finished, return {"results": []}.'
+        "- Include a match ONLY if it has FINISHED and you can cite a specific source as a full URL.\n"
+        "- home_goals/away_goals = full-time score after regulation + extra time, EXCLUDING penalty "
+        "shootouts. If the score was level after extra time, set decided_by to \"penalties\".\n"
+        "- A decisive score is decided_by \"regulation\" or \"extra_time\", never \"penalties\", and "
+        'the "advances" team must be the higher-scoring side.\n'
+        '- "advances" MUST be exactly one of the two team names given (verbatim). Use only the listed ids.\n'
+        '- If nothing has a confirmed final score, return {"results": []}.'
         % (today, "\n".join(lines))
     )
     return system, user
@@ -106,22 +160,10 @@ def apply_results(returned, pend_by_id, results_by_round):
             skipped.append((mid, "not a pending match"))
             continue
         try:
-            hg, ag = int(r["home_goals"]), int(r["away_goals"])
-        except (KeyError, TypeError, ValueError):
-            skipped.append((mid, "non-integer goals"))
+            winner, decided, hg, ag = validate_result(r, pend)
+        except ValueError as e:
+            skipped.append((mid, str(e)))
             continue
-        if hg < 0 or ag < 0:
-            skipped.append((mid, "negative goals"))
-            continue
-        adv = _norm(r.get("advances"))
-        if adv == _norm(pend["home"]):
-            winner = pend["home"]            # store the fixture's exact spelling
-        elif adv == _norm(pend["away"]):
-            winner = pend["away"]
-        else:
-            skipped.append((mid, "winner not one of the two teams"))
-            continue
-        decided = r.get("decided_by") if r.get("decided_by") in DECIDED_BY else "regulation"
         rnd, match = res_index.get(mid, (None, None))
         if not match:
             skipped.append((mid, "no results slot"))
