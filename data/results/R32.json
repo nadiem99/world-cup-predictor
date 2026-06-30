@@ -4,10 +4,10 @@
   "matches": [
     {
       "id": "R32-1",
-      "home_goals": null,
-      "away_goals": null,
-      "advances": "",
-      "decided_by": "regulation"
+      "home_goals": 1,
+      "away_goals": 1,
+      "advances": "Paraguay",
+      "decided_by": "penalties"
     },
     {
       "id": "R32-2",
@@ -25,10 +25,10 @@
     },
     {
       "id": "R32-4",
-      "home_goals": null,
-      "away_goals": null,
-      "advances": "",
-      "decided_by": "regulation"
+      "home_goals": 1,
+      "away_goals": 1,
+      "advances": "Morocco",
+      "decided_by": "penalties"
     },
     {
       "id": "R32-5",
