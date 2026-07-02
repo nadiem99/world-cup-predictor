@@ -46,17 +46,17 @@
     },
     {
       "id": "R32-7",
-      "home_goals": null,
-      "away_goals": null,
-      "advances": "",
+      "home_goals": 2,
+      "away_goals": 0,
+      "advances": "United States",
       "decided_by": "regulation"
     },
     {
       "id": "R32-8",
-      "home_goals": null,
-      "away_goals": null,
-      "advances": "",
-      "decided_by": "regulation"
+      "home_goals": 3,
+      "away_goals": 2,
+      "advances": "Belgium",
+      "decided_by": "extra_time"
     },
     {
       "id": "R32-9",
@@ -81,9 +81,9 @@
     },
     {
       "id": "R32-12",
-      "home_goals": null,
-      "away_goals": null,
-      "advances": "",
+      "home_goals": 2,
+      "away_goals": 1,
+      "advances": "England",
       "decided_by": "regulation"
     },
     {
