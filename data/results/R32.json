@@ -32,16 +32,16 @@
     },
     {
       "id": "R32-5",
-      "home_goals": null,
-      "away_goals": null,
-      "advances": "",
+      "home_goals": 2,
+      "away_goals": 1,
+      "advances": "Portugal",
       "decided_by": "regulation"
     },
     {
       "id": "R32-6",
-      "home_goals": null,
-      "away_goals": null,
-      "advances": "",
+      "home_goals": 3,
+      "away_goals": 0,
+      "advances": "Spain",
       "decided_by": "regulation"
     },
     {
@@ -102,9 +102,9 @@
     },
     {
       "id": "R32-15",
-      "home_goals": null,
-      "away_goals": null,
-      "advances": "",
+      "home_goals": 2,
+      "away_goals": 0,
+      "advances": "Switzerland",
       "decided_by": "regulation"
     },
     {
