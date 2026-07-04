@@ -88,17 +88,17 @@
     },
     {
       "id": "R32-13",
-      "home_goals": null,
-      "away_goals": null,
-      "advances": "",
-      "decided_by": "regulation"
+      "home_goals": 3,
+      "away_goals": 2,
+      "advances": "Argentina",
+      "decided_by": "extra_time"
     },
     {
       "id": "R32-14",
-      "home_goals": null,
-      "away_goals": null,
-      "advances": "",
-      "decided_by": "regulation"
+      "home_goals": 1,
+      "away_goals": 1,
+      "advances": "Egypt",
+      "decided_by": "penalties"
     },
     {
       "id": "R32-15",
@@ -109,9 +109,9 @@
     },
     {
       "id": "R32-16",
-      "home_goals": null,
-      "away_goals": null,
-      "advances": "",
+      "home_goals": 1,
+      "away_goals": 0,
+      "advances": "Colombia",
       "decided_by": "regulation"
     }
   ]
