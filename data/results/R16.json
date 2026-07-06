@@ -32,16 +32,16 @@
     },
     {
       "id": "R16-5",
-      "home_goals": null,
-      "away_goals": null,
-      "advances": "",
+      "home_goals": 1,
+      "away_goals": 2,
+      "advances": "Norway",
       "decided_by": "regulation"
     },
     {
       "id": "R16-6",
-      "home_goals": null,
-      "away_goals": null,
-      "advances": "",
+      "home_goals": 2,
+      "away_goals": 3,
+      "advances": "England",
       "decided_by": "regulation"
     },
     {
