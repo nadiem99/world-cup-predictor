@@ -4,9 +4,9 @@
   "matches": [
     {
       "id": "QF-1",
-      "home_goals": null,
-      "away_goals": null,
-      "advances": "",
+      "home_goals": 2,
+      "away_goals": 0,
+      "advances": "France",
       "decided_by": "regulation"
     },
     {
