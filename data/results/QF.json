@@ -18,17 +18,17 @@
     },
     {
       "id": "QF-3",
-      "home_goals": null,
-      "away_goals": null,
-      "advances": "",
-      "decided_by": "regulation"
+      "home_goals": 1,
+      "away_goals": 2,
+      "advances": "England",
+      "decided_by": "extra_time"
     },
     {
       "id": "QF-4",
-      "home_goals": null,
-      "away_goals": null,
-      "advances": "",
-      "decided_by": "regulation"
+      "home_goals": 3,
+      "away_goals": 1,
+      "advances": "Argentina",
+      "decided_by": "extra_time"
     }
   ]
 }
