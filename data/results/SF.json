@@ -11,9 +11,9 @@
     },
     {
       "id": "SF-2",
-      "home_goals": null,
-      "away_goals": null,
-      "advances": "",
+      "home_goals": 1,
+      "away_goals": 2,
+      "advances": "Argentina",
       "decided_by": "regulation"
     }
   ]
