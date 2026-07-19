@@ -4,9 +4,9 @@
   "matches": [
     {
       "id": "TP-1",
-      "home_goals": null,
-      "away_goals": null,
-      "advances": "",
+      "home_goals": 4,
+      "away_goals": 6,
+      "advances": "England",
       "decided_by": "regulation"
     }
   ]
