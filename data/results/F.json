@@ -4,10 +4,10 @@
   "matches": [
     {
       "id": "F-1",
-      "home_goals": null,
-      "away_goals": null,
-      "advances": "",
-      "decided_by": "regulation"
+      "home_goals": 1,
+      "away_goals": 0,
+      "advances": "Spain",
+      "decided_by": "extra_time"
     }
   ]
 }
